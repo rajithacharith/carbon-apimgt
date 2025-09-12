@@ -57,7 +57,9 @@ public class ApplicationsApiServiceImpl implements ApplicationsApiService {
     @Override
     public Response applicationsApplicationIdChangeOwnerPost(String owner, String applicationId,
                                                              MessageContext messageContext) {
-
+        if (log.isDebugEnabled()) {
+            log.debug("Changing application owner for application: " + applicationId + " to owner: " + owner);
+        }
         APIConsumer apiConsumer = null;
         try {
             apiConsumer = APIManagerFactory.getInstance().getAPIConsumer(owner);
@@ -65,6 +67,7 @@ public class ApplicationsApiServiceImpl implements ApplicationsApiService {
             String organization = RestApiUtil.getValidatedOrganization(messageContext);
             boolean applicationUpdated = apiConsumer.updateApplicationOwner(owner, organization, application);
             if (applicationUpdated) {
+                log.info("Successfully changed application owner for application: " + applicationId + " to: " + owner);
                 String info = "Application ID:" + applicationId + " owner has been changed to " + owner;
                 APIUtil.logAuditMessage(APIConstants.AuditLogConstants.APPLICATIONS, info,
                         APIConstants.AuditLogConstants.UPDATED, RestApiCommonUtil.getLoggedInUsername());
@@ -74,6 +77,7 @@ public class ApplicationsApiServiceImpl implements ApplicationsApiService {
             }
 
         } catch (APIManagementException e) {
+            log.error("Error while changing application owner for application: " + applicationId + " to: " + owner, e);
             RestApiUtil.handleInternalServerError("Error while updating application owner " + applicationId, e, log);
         }
 
@@ -81,18 +85,25 @@ public class ApplicationsApiServiceImpl implements ApplicationsApiService {
     }
 
     @Override
-    public Response applicationsApplicationIdDelete(String applicationId, MessageContext messageContext) throws APIManagementException {
+    public Response applicationsApplicationIdDelete(String applicationId, MessageContext messageContext) 
+            throws APIManagementException {
+        if (log.isDebugEnabled()) {
+            log.debug("Deleting application with ID: " + applicationId);
+        }
         String username = RestApiCommonUtil.getLoggedInUsername();
         try {
             APIConsumer apiConsumer = APIManagerFactory.getInstance().getAPIConsumer(username);
             Application application = apiConsumer.getApplicationByUUID(applicationId);
             if (application != null) {
                 apiConsumer.removeApplication(application, application.getOwner());
+                log.info("Successfully deleted application: " + applicationId + " owned by: " + 
+                        application.getOwner());
                 return Response.ok().build();
             } else {
                 RestApiUtil.handleResourceNotFoundError(RestApiConstants.RESOURCE_APPLICATION, applicationId, log);
             }
         } catch (APIManagementException e) {
+            log.error("Error while deleting application: " + applicationId, e);
             RestApiUtil.handleInternalServerError("Error while deleting application " + applicationId, e, log);
         }
         return null;
@@ -102,6 +113,9 @@ public class ApplicationsApiServiceImpl implements ApplicationsApiService {
     public Response applicationsGet(String user, Integer limit, Integer offset, String accept, String applicationName,
                                     String tenantDomain, String sortBy, String sortOrder,
                                     MessageContext messageContext) {
+        if (log.isDebugEnabled()) {
+            log.debug("Retrieving applications for user: " + user + ", limit: " + limit + ", offset: " + offset);
+        }
         // To store the initial value of the user (specially if it is null or empty)
         String givenUser = user;
         // if no username provided user associated with access token will be used
@@ -138,6 +152,7 @@ public class ApplicationsApiServiceImpl implements ApplicationsApiService {
             ApplicationMappingUtil.setPaginationParams(applicationListDTO, limit, offset, allApplicationsCount);
             return Response.ok().entity(applicationListDTO).build();
         } catch (APIManagementException e) {
+            log.error("Error while retrieving applications for user: " + user, e);
             RestApiUtil.handleInternalServerError("Error while retrieving applications of the user " + user, e, log);
         }
         return null;
@@ -157,7 +172,9 @@ public class ApplicationsApiServiceImpl implements ApplicationsApiService {
     @Override
     public Response applicationsApplicationIdGet(String applicationId, MessageContext messageContext)
             throws APIManagementException {
-
+        if (log.isDebugEnabled()) {
+            log.debug("Retrieving application details for ID: " + applicationId);
+        }
         String username = RestApiCommonUtil.getLoggedInUsername();
         String organization = RestApiUtil.getOrganization(messageContext);
         try {
@@ -198,6 +215,7 @@ public class ApplicationsApiServiceImpl implements ApplicationsApiService {
                 }
             }
         } catch (APIManagementException e) {
+            log.error("Error while retrieving application: " + applicationId, e);
             RestApiUtil.handleInternalServerError("Error while retrieving application " + applicationId, e, log);
         }
         RestApiUtil.handleResourceNotFoundError(RestApiConstants.RESOURCE_APPLICATION, applicationId, log);

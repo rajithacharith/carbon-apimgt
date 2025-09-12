@@ -18,6 +18,8 @@ package org.wso2.carbon.apimgt.persistence.internal;
 
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.apimgt.persistence.APIPersistence;
 import org.wso2.carbon.registry.core.service.RegistryService;
 import org.wso2.carbon.registry.indexing.service.TenantIndexingLoader;
@@ -26,6 +28,7 @@ import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.utils.ConfigurationContextService;
 
 public class ServiceReferenceHolder {
+    private static final Log log = LogFactory.getLog(ServiceReferenceHolder.class);
     private static final ServiceReferenceHolder instance = new ServiceReferenceHolder();
     private RealmService realmService;
     private TenantIndexingLoader indexLoader;
@@ -52,6 +55,9 @@ public class ServiceReferenceHolder {
 
     public void setRegistryService(RegistryService registryService) {
         this.registryService = registryService;
+        if (log.isInfoEnabled()) {
+            log.info("Registry service " + (registryService != null ? "initialized" : "unset"));
+        }
     }
 
     public RealmService getRealmService() {
@@ -60,6 +66,9 @@ public class ServiceReferenceHolder {
 
     public void setRealmService(RealmService realmService) {
         this.realmService = realmService;
+        if (log.isInfoEnabled()) {
+            log.info("Realm service " + (realmService != null ? "initialized" : "unset"));
+        }
     }
 
     public TenantIndexingLoader getIndexLoaderService(){
@@ -68,6 +77,9 @@ public class ServiceReferenceHolder {
 
     public void setIndexLoaderService(TenantIndexingLoader indexLoader) {
         this.indexLoader = indexLoader;
+        if (log.isInfoEnabled()) {
+            log.info("Index loader service " + (indexLoader != null ? "initialized" : "unset"));
+        }
     }
 
     public static ConfigurationContextService getContextService() {
@@ -75,6 +87,9 @@ public class ServiceReferenceHolder {
     }
     public static void setContextService(ConfigurationContextService contextService) {
         ServiceReferenceHolder.contextService = contextService;
+        if (log.isInfoEnabled()) {
+            log.info("Configuration context service " + (contextService != null ? "initialized" : "unset"));
+        }
     }
     public APIPersistence getApiPersistence() {
         return apiPersistence;
@@ -86,9 +101,16 @@ public class ServiceReferenceHolder {
 
     public void setPersistenceConfigs(Map<String, String> persistenceConfigs) {
         this.persistenceConfigs = persistenceConfigs;
+        if (log.isDebugEnabled()) {
+            log.debug("Persistence configs " + (persistenceConfigs != null ? "set with " + 
+                persistenceConfigs.size() + " entries" : "unset"));
+        }
     }
 
     public void setApiPersistence(APIPersistence apiPersistence) {
         this.apiPersistence = apiPersistence;
+        if (log.isInfoEnabled()) {
+            log.info("API persistence service " + (apiPersistence != null ? "initialized" : "unset"));
+        }
     }
 }

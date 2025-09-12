@@ -18,6 +18,8 @@
 
 package org.wso2.carbon.apimgt.cache.invalidation.internal;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.apimgt.impl.APIManagerConfigurationService;
 import org.wso2.carbon.apimgt.impl.CacheInvalidationConfiguration;
 
@@ -28,6 +30,7 @@ import java.util.UUID;
  */
 public class DataHolder {
 
+    private static final Log log = LogFactory.getLog(DataHolder.class);
     private static final String nodeId = UUID.randomUUID().toString();
     private static final DataHolder instance = new DataHolder();
     private APIManagerConfigurationService apiManagerConfigurationService;
@@ -60,6 +63,10 @@ public class DataHolder {
                 apiManagerConfigurationService.getAPIManagerConfiguration() != null) {
             cacheInvalidationConfiguration =
                     apiManagerConfigurationService.getAPIManagerConfiguration().getCacheInvalidationConfiguration();
+            if (log.isDebugEnabled()) {
+                log.debug("Cache invalidation configuration updated. Enabled: " + 
+                        (cacheInvalidationConfiguration != null ? cacheInvalidationConfiguration.isEnabled() : "null"));
+            }
         }
     }
 

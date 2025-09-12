@@ -17,6 +17,8 @@
 
 package org.wso2.carbon.apimgt.rest.api.common.internal;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.apimgt.impl.APIManagerConfiguration;
 import org.wso2.carbon.apimgt.impl.APIManagerConfigurationService;
 import org.wso2.carbon.apimgt.impl.jwt.JWTValidator;
@@ -30,6 +32,8 @@ import java.util.Map;
  * This class implemented for retrieving APIM configurations related to REST APIs
  */
 public class ServiceReferenceHolder {
+
+    private static final Log log = LogFactory.getLog(ServiceReferenceHolder.class);
 
 
     private static ServiceReferenceHolder instance = new ServiceReferenceHolder();
@@ -53,8 +57,14 @@ public class ServiceReferenceHolder {
 
     public void setAPIMConfigurationService(APIManagerConfigurationService configurationService) {
         if (configurationService == null) {
+            if (log.isDebugEnabled()) {
+                log.debug("Unsetting APIM configuration service");
+            }
             this.apimConfiguration = null;
         } else {
+            if (log.isDebugEnabled()) {
+                log.debug("Setting APIM configuration service");
+            }
             this.apimConfiguration = configurationService.getAPIManagerConfiguration();
         }
     }
@@ -68,10 +78,18 @@ public class ServiceReferenceHolder {
     }
 
     public void addAuthenticator(RestAPIAuthenticator authenticator) {
+        if (log.isDebugEnabled()) {
+            log.debug("Adding REST API authenticator: " + (authenticator != null ? 
+                    authenticator.getAuthenticationType() : "null"));
+        }
         this.authenticators.add(authenticator);
     }
 
     public void removeAuthenticator(RestAPIAuthenticator authenticator) {
+        if (log.isDebugEnabled()) {
+            log.debug("Removing REST API authenticator: " + (authenticator != null ? 
+                    authenticator.getAuthenticationType() : "null"));
+        }
         this.authenticators.remove(authenticator);
     }
 

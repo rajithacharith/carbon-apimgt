@@ -72,25 +72,60 @@ public class PersistenceUtil {
     }
 
     public static String extractPDFText(InputStream inputStream) throws IOException {
-        PDFParser parser = new PDFParser(inputStream);
-        parser.parse();
-        COSDocument cosDoc = parser.getDocument();
-        PDFTextStripper stripper = new PDFTextStripper();
-        String text = stripper.getText(new PDDocument(cosDoc));
-        cosDoc.close();
-        return text;
+        if (log.isDebugEnabled()) {
+            log.debug("Extracting text from PDF document");
+        }
+        try {
+            PDFParser parser = new PDFParser(inputStream);
+            parser.parse();
+            COSDocument cosDoc = parser.getDocument();
+            PDFTextStripper stripper = new PDFTextStripper();
+            String text = stripper.getText(new PDDocument(cosDoc));
+            cosDoc.close();
+            if (log.isDebugEnabled()) {
+                log.debug("Successfully extracted " + (text != null ? text.length() : 0) + " characters from PDF");
+            }
+            return text;
+        } catch (IOException e) {
+            log.error("Failed to extract text from PDF document: " + e.getMessage());
+            throw e;
+        }
     }
 
     public static String extractDocXText(InputStream inputStream) throws IOException {
-        XWPFDocument doc = new XWPFDocument(inputStream);
-        XWPFWordExtractor msWord2007Extractor = new XWPFWordExtractor(doc);
-        return msWord2007Extractor.getText();
+        if (log.isDebugEnabled()) {
+            log.debug("Extracting text from DOCX document");
+        }
+        try {
+            XWPFDocument doc = new XWPFDocument(inputStream);
+            XWPFWordExtractor msWord2007Extractor = new XWPFWordExtractor(doc);
+            String text = msWord2007Extractor.getText();
+            if (log.isDebugEnabled()) {
+                log.debug("Successfully extracted " + (text != null ? text.length() : 0) + " characters from DOCX");
+            }
+            return text;
+        } catch (IOException e) {
+            log.error("Failed to extract text from DOCX document: " + e.getMessage());
+            throw e;
+        }
     }
 
     public static String extractDocText(InputStream inputStream) throws IOException {
-        POIFSFileSystem fs = new POIFSFileSystem(inputStream);
-        WordExtractor msWord2003Extractor = new WordExtractor(fs);
-        return msWord2003Extractor.getText();
+        if (log.isDebugEnabled()) {
+            log.debug("Extracting text from DOC document");
+        }
+        try {
+            POIFSFileSystem fs = new POIFSFileSystem(inputStream);
+            WordExtractor msWord2003Extractor = new WordExtractor(fs);
+            String text = msWord2003Extractor.getText();
+            if (log.isDebugEnabled()) {
+                log.debug("Successfully extracted " + (text != null ? text.length() : 0) + " characters from DOC");
+            }
+            return text;
+        } catch (IOException e) {
+            log.error("Failed to extract text from DOC document: " + e.getMessage());
+            throw e;
+        }
     }
 
     public static String extractPlainText(InputStream inputStream) throws IOException {
@@ -106,6 +141,9 @@ public class PersistenceUtil {
 
     public static File writeStream(InputStream uploadedInputStream, String fileName)
             throws PersistenceException {
+        if (log.isDebugEnabled()) {
+            log.debug("Writing uploaded stream to temporary file: " + fileName);
+        }
         String randomFolderName = RandomStringUtils.randomAlphanumeric(10);
         String tmpFolder = System.getProperty(APIConstants.JAVA_IO_TMPDIR) + File.separator
                 + APIConstants.DOC_UPLOAD_TMPDIR + File.separator + randomFolderName;
@@ -114,7 +152,11 @@ public class PersistenceUtil {
 
         boolean folderCreated = docFile.mkdirs();
         if (!folderCreated) {
+            log.error("Failed to create temporary folder: " + tmpFolder);
             throw new PersistenceException("Failed to create temporary folder for document upload ");
+        }
+        if (log.isDebugEnabled()) {
+            log.debug("Created temporary folder: " + tmpFolder);
         }
 
         try {
@@ -131,14 +173,21 @@ public class PersistenceUtil {
         } finally {
             IOUtils.closeQuietly(outFileStream);
         }
+        if (log.isDebugEnabled()) {
+            log.debug("Successfully wrote file: " + fileName + " to " + docFile.getAbsolutePath());
+        }
         return docFile;
     }
 
     public static InputStream readStream(File docFile, String fileName) throws PersistenceException {
+        if (log.isDebugEnabled()) {
+            log.debug("Reading file: " + fileName + " from " + docFile.getAbsolutePath());
+        }
         try {
             InputStream newInputStream = new FileInputStream(docFile.getAbsolutePath() + File.separator + fileName);
             return newInputStream;
         } catch (FileNotFoundException e) {
+            log.error("File not found: " + docFile.getAbsolutePath() + File.separator + fileName);
             throw new PersistenceException("Failed to open file ");
         }
     }

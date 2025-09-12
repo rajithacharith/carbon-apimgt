@@ -75,6 +75,9 @@ public class OrganizationPurgeDAO {
      * @throws APIManagementException
      */
     public boolean apiOrganizationExist(String orgId) throws APIManagementException {
+        if (log.isDebugEnabled()) {
+            log.debug("Checking if API data exists for organization: " + orgId);
+        }
         boolean isApiOrganizationDataExist = false;
         try (Connection conn = APIMgtDBUtil.getConnection();
                 PreparedStatement ps = conn.prepareStatement(
@@ -85,8 +88,11 @@ public class OrganizationPurgeDAO {
                     isApiOrganizationDataExist = true;
                 }
             }
+            if (log.isDebugEnabled()) {
+                log.debug("API data exists for organization " + orgId + ": " + isApiOrganizationDataExist);
+            }
         } catch (SQLException e) {
-            log.error("Error while getting api data for organization" + orgId, e);
+            log.error("Error while getting api data for organization: " + orgId, e);
             handleException("Failed to get API list of organization " + orgId, e);
         }
         return isApiOrganizationDataExist;
@@ -100,6 +106,9 @@ public class OrganizationPurgeDAO {
      * @throws APIManagementException
      */
     public boolean applicationOrganizationExist(String orgId) throws APIManagementException {
+        if (log.isDebugEnabled()) {
+            log.debug("Checking if application data exists for organization: " + orgId);
+        }
         boolean isApiOrganizationDataExist = false;
         try (Connection conn = APIMgtDBUtil.getConnection();
                 PreparedStatement ps = conn.prepareStatement(
@@ -110,8 +119,11 @@ public class OrganizationPurgeDAO {
                     isApiOrganizationDataExist = true;
                 }
             }
+            if (log.isDebugEnabled()) {
+                log.debug("Application data exists for organization " + orgId + ": " + isApiOrganizationDataExist);
+            }
         } catch (SQLException e) {
-            log.error("Error while getting application list of organization" + orgId, e);
+            log.error("Error while getting application list of organization: " + orgId, e);
             handleException("Failed to get Application list of organization " + orgId, e);
         }
         return isApiOrganizationDataExist;
@@ -125,6 +137,9 @@ public class OrganizationPurgeDAO {
      * @throws APIManagementException
      */
     public boolean keyManagerOrganizationExist(String orgId) throws APIManagementException {
+        if (log.isDebugEnabled()) {
+            log.debug("Checking if key manager data exists for organization: " + orgId);
+        }
         boolean isApiOrganizationDataExist = false;
         try (Connection conn = APIMgtDBUtil.getConnection();
                 PreparedStatement ps = conn.prepareStatement(
@@ -135,8 +150,11 @@ public class OrganizationPurgeDAO {
                     isApiOrganizationDataExist = true;
                 }
             }
+            if (log.isDebugEnabled()) {
+                log.debug("Key manager data exists for organization " + orgId + ": " + isApiOrganizationDataExist);
+            }
         } catch (SQLException e) {
-            log.error("Error while getting key manager list of organization" + orgId, e);
+            log.error("Error while getting key manager list of organization: " + orgId, e);
             handleException("Failed to get key manager list of organization " + orgId, e);
         }
         return isApiOrganizationDataExist;
@@ -150,7 +168,9 @@ public class OrganizationPurgeDAO {
      * @throws APIManagementException
      */
     public ArrayList<APIIdentifier> getAPIIdList(String orgId) throws APIManagementException {
-
+        if (log.isDebugEnabled()) {
+            log.debug("Retrieving API list for organization: " + orgId);
+        }
         ArrayList<APIIdentifier> apiList = new ArrayList<>();
         try (Connection conn = APIMgtDBUtil.getConnection();
                 PreparedStatement ps = conn.prepareStatement(OrganizationPurgeConstants.GET_API_LIST_SQL_BY_ORG_SQL)) {
@@ -168,9 +188,12 @@ public class OrganizationPurgeDAO {
                     apiList.add(apiIdentifier);
                 }
             }
+            if (log.isDebugEnabled()) {
+                log.debug("Retrieved " + apiList.size() + " APIs for organization: " + orgId);
+            }
         } catch (SQLException e) {
-            log.error("Error while getting apiUuid list of organization" + orgId, e);
-            handleException("Failed to get API apiUuid list of organization " + orgId, e);
+            log.error("Error while getting API list for organization: " + orgId, e);
+            handleException("Failed to get API list of organization " + orgId, e);
         }
         return apiList;
     }
@@ -182,14 +205,25 @@ public class OrganizationPurgeDAO {
      * @throws APIManagementException
      */
     public void deleteOrganizationAPIList(String organization) throws APIManagementException {
-
+        log.info("Starting deletion of API data for organization: " + organization);
         try (Connection connection = APIMgtDBUtil.getConnection()) {
             connection.setAutoCommit(false);
 
+            if (log.isDebugEnabled()) {
+                log.debug("Deleting API URL mappings for organization: " + organization);
+            }
             deleteAmApiUrlMappings(connection, OrganizationPurgeConstants.REMOVE_AM_URL_MAPPINGS_SQL, organization);
             // Remove records from AM_API table and associated data through cascade delete
-            deleteOrganizationAPIData(connection, OrganizationPurgeConstants.REMOVE_BULK_APIS_DATA_FROM_AM_API_SQL, organization);
-            deleteAPIsFromDefaultVersion(connection, OrganizationPurgeConstants.REMOVE_BULK_APIS_DEFAULT_VERSION_SQL, organization);
+            if (log.isDebugEnabled()) {
+                log.debug("Deleting API data from database for organization: " + organization);
+            }
+            deleteOrganizationAPIData(connection, 
+                    OrganizationPurgeConstants.REMOVE_BULK_APIS_DATA_FROM_AM_API_SQL, organization);
+            if (log.isDebugEnabled()) {
+                log.debug("Deleting API default version data for organization: " + organization);
+            }
+            deleteAPIsFromDefaultVersion(connection, 
+                    OrganizationPurgeConstants.REMOVE_BULK_APIS_DEFAULT_VERSION_SQL, organization);
 
             //Remove API Cleanup tasks
             String convertStr = "";
@@ -199,11 +233,16 @@ public class OrganizationPurgeDAO {
                 convertStr = "CONVERT(API.API_ID, CHAR)";
             }
 
-            String deleteBulkAPIWF = OrganizationPurgeConstants.DELETE_BULK_API_WORKFLOWS_REQUEST_SQL.replaceAll("_CONVERT_PLACEHOLDER_", convertStr);
+            String deleteBulkAPIWF = OrganizationPurgeConstants.DELETE_BULK_API_WORKFLOWS_REQUEST_SQL
+                    .replaceAll("_CONVERT_PLACEHOLDER_", convertStr);
+            if (log.isDebugEnabled()) {
+                log.debug("Deleting API cleanup tasks for organization: " + organization);
+            }
             deleteAPICleanupTasks(connection, deleteBulkAPIWF, organization);
             connection.commit();
+            log.info("Successfully deleted API data for organization: " + organization);
         } catch (SQLException e) {
-            handleException("Error while removing the  API data of organization " + organization + " from the database",
+            handleException("Error while removing the API data of organization " + organization + " from the database",
                     e);
         }
     }
@@ -219,7 +258,8 @@ public class OrganizationPurgeDAO {
             } catch (SQLException e1) {
                 log.error("Error while rolling back the failed operation", e1);
             }
-            handleException("Failed to remove API URL mapping data of organization " + organization + " from the database", e);
+            handleException("Failed to remove API URL mapping data of organization " + organization 
+                    + " from the database", e);
         }
     }
 
@@ -396,10 +436,14 @@ public class OrganizationPurgeDAO {
      * @throws APIManagementException if failed to delete applications for organization
      */
     public void deleteApplicationList(String organization) throws APIManagementException {
+        log.info("Starting deletion of applications for organization: " + organization);
         try (Connection connection = APIMgtDBUtil.getConnection()) {
             connection.setAutoCommit(false);
 
             if (multiGroupAppSharingEnabled) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Updating group ID mappings for organization: " + organization);
+                }
                 updateGroupIDMappingsBulk(connection, organization);
             }
 
@@ -434,8 +478,8 @@ public class OrganizationPurgeDAO {
                                                     + " and organization: " + organization, e);
                                 }
                             }
-                            // OAuth app is deleted if only it has been created from API Store. For mapped clients we don't
-                            // call delete.
+                            // OAuth app is deleted if only it has been created from API Store. 
+                            // For mapped clients we don't call delete.
                             if (!APIConstants.OAuthAppMode.MAPPED.name().equals(mode)) {
                                 //delete on oAuthorization server.
                                 if (log.isDebugEnabled()) {
@@ -484,6 +528,7 @@ public class OrganizationPurgeDAO {
             }
 
             connection.commit();
+            log.info("Successfully deleted applications for organization: " + organization);
 
         } catch (SQLException e) {
             handleException(

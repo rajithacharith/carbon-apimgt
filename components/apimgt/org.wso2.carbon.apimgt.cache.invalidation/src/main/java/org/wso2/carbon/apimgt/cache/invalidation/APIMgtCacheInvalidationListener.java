@@ -109,7 +109,10 @@ public class APIMgtCacheInvalidationListener implements MessageListener {
                 Cache<Object, Object> cache = cacheManager.getCache(cacheName);
                 Object cacheKeyObject = constructCacheKeyObject(cacheKey);
                 if (cache instanceof CacheImpl) {
-
+                    if (log.isDebugEnabled()) {
+                        log.debug("Processing cache invalidation for cache: " + cacheName + 
+                                " in tenant: " + tenantDomain);
+                    }
                     if (CLEAR_ALL_PREFIX.equals(cacheKeyObject)) {
                         ((CacheImpl) cache).removeAllLocal();
                     } else {

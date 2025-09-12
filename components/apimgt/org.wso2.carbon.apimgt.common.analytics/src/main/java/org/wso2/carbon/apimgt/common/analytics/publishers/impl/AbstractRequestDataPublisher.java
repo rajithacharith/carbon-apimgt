@@ -42,12 +42,17 @@ public abstract class AbstractRequestDataPublisher implements RequestDataPublish
 
     @Override
     public void publish(Event analyticsEvent) {
-
+        if (log.isDebugEnabled()) {
+            log.debug("Publishing analytics event");
+        }
         Map<String, Object> dataMap = OBJECT_MAPPER.convertValue(analyticsEvent, MAP_TYPE_REFERENCE);
         List<CounterMetric> multipleCounterMetrics = this.getMultipleCounterMetrics();
         if (multipleCounterMetrics == null) {
             log.error("All the counterMetrics are invalid. Event will be dropped.");
             return;
+        }
+        if (log.isDebugEnabled()) {
+            log.debug("Processing event with " + multipleCounterMetrics.size() + " counter metrics");
         }
 
         for (CounterMetric counterMetric : multipleCounterMetrics) {
@@ -71,8 +76,12 @@ public abstract class AbstractRequestDataPublisher implements RequestDataPublish
                 if (!caughtException) {
                     try {
                         counterMetric.incrementCount(builder);
+                        if (log.isDebugEnabled()) {
+                            log.debug("Event published successfully for counter metric: " + counterMetricClassName);
+                        }
                     } catch (MetricReportingException e) {
-                        log.error("Error occurred when publishing event.", e);
+                        log.error("Error occurred when publishing event for counter metric: " + 
+                                counterMetricClassName, e);
                     }
                 }
             }

@@ -35,9 +35,13 @@ public class ExtendedHTTPEventAdapterServiceDS {
 
     @Activate
     protected void activate(ComponentContext context) {
+        if (log.isDebugEnabled()) {
+            log.debug("Activating Extended HTTP Event Adapter Service");
+        }
         ExtendedHTTPEventAdapterFactory extendedHttpEventAdaptorFactory = new ExtendedHTTPEventAdapterFactory();
         BundleContext bundleContext = context.getBundleContext();
         bundleContext.registerService(OutputEventAdapterFactory.class.getName(),extendedHttpEventAdaptorFactory, null);
+        log.info("Extended HTTP Event Adapter service successfully activated and registered");
         if (log.isDebugEnabled()) {
             log.debug("Successfully deployed the Extended Http event adaptor service");
         }

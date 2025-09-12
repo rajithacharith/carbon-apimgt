@@ -38,8 +38,15 @@ public class FaultyRequestDataPublisher extends AbstractRequestDataPublisher {
 
     @Override
     public List<CounterMetric> getMultipleCounterMetrics() {
+        if (log.isDebugEnabled()) {
+            log.debug("Retrieving faulty counter metrics");
+        }
         try {
-            return AnalyticsDataPublisher.getInstance().getFaultyMetricReporters();
+            List<CounterMetric> metrics = AnalyticsDataPublisher.getInstance().getFaultyMetricReporters();
+            if (log.isDebugEnabled()) {
+                log.debug("Retrieved " + metrics.size() + " faulty counter metrics");
+            }
+            return metrics;
         } catch (MetricCreationException e) {
             log.error("Unable to get faulty counter metrics", e);
             return null;

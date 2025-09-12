@@ -18,6 +18,8 @@
  */
 package org.wso2.carbon.apimgt.persistence.mapper;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.mapstruct.Mapper;
 import org.mapstruct.factory.Mappers;
 import org.wso2.carbon.apimgt.api.model.Documentation;
@@ -26,13 +28,67 @@ import org.wso2.carbon.apimgt.persistence.dto.DocumentContent;
 
 @Mapper
 public interface DocumentMapper {
+    Log log = LogFactory.getLog(DocumentMapper.class);
     DocumentMapper INSTANCE = Mappers.getMapper(DocumentMapper.class);
     
-    Documentation toDocumentation(org.wso2.carbon.apimgt.persistence.dto.Documentation doc);
+    default Documentation toDocumentation(org.wso2.carbon.apimgt.persistence.dto.Documentation doc) {
+        if (doc == null) {
+            if (log.isDebugEnabled()) {
+                log.debug("Documentation DTO is null, returning null Documentation");
+            }
+            return null;
+        }
+        if (log.isDebugEnabled()) {
+            log.debug("Converting documentation DTO to API model: " + (doc.getName() != null ? doc.getName() : "unnamed"));
+        }
+        return INSTANCE.performDocumentationMapping(doc);
+    }
+    
+    Documentation performDocumentationMapping(org.wso2.carbon.apimgt.persistence.dto.Documentation doc);
 
-    DocumentationContent toDocumentationContent(DocumentContent content);
+    default DocumentationContent toDocumentationContent(DocumentContent content) {
+        if (content == null) {
+            if (log.isDebugEnabled()) {
+                log.debug("DocumentContent is null, returning null DocumentationContent");
+            }
+            return null;
+        }
+        if (log.isDebugEnabled()) {
+            log.debug("Converting document content from persistence DTO to API model");
+        }
+        return INSTANCE.performDocumentationContentMapping(content);
+    }
+    
+    DocumentationContent performDocumentationContentMapping(DocumentContent content);
 
-    org.wso2.carbon.apimgt.persistence.dto.Documentation toDocumentation(Documentation documentation);
+    default org.wso2.carbon.apimgt.persistence.dto.Documentation toDocumentation(Documentation documentation) {
+        if (documentation == null) {
+            if (log.isDebugEnabled()) {
+                log.debug("Documentation API model is null, returning null DTO");
+            }
+            return null;
+        }
+        if (log.isDebugEnabled()) {
+            log.debug("Converting documentation API model to DTO: " + 
+                (documentation.getName() != null ? documentation.getName() : "unnamed"));
+        }
+        return INSTANCE.performDocumentationDTOMapping(documentation);
+    }
+    
+    org.wso2.carbon.apimgt.persistence.dto.Documentation performDocumentationDTOMapping(Documentation documentation);
 
-    DocumentContent toDocumentContent(DocumentationContent content);
+    default DocumentContent toDocumentContent(DocumentationContent content) {
+        if (content == null) {
+            if (log.isDebugEnabled()) {
+                log.debug("DocumentationContent API model is null, returning null DTO");
+            }
+            return null;
+        }
+        if (log.isDebugEnabled()) {
+            log.debug("Converting documentation content from API model to persistence DTO");
+        }
+        return INSTANCE.performDocumentContentDTOMapping(content);
+    }
+    
+    DocumentContent performDocumentContentDTOMapping(DocumentationContent content);
 }

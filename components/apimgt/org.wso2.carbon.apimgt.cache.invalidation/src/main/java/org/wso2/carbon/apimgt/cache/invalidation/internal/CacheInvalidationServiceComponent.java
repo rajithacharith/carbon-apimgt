@@ -18,6 +18,8 @@
 
 package org.wso2.carbon.apimgt.cache.invalidation.internal;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
@@ -47,6 +49,7 @@ import javax.cache.event.CacheEntryListener;
         immediate = true)
 public class CacheInvalidationServiceComponent {
 
+    private static final Log log = LogFactory.getLog(CacheInvalidationServiceComponent.class);
     ServiceRegistration cacheInvalidationRequestSenderServiceRegistration;
 
     @Activate
@@ -59,6 +62,7 @@ public class CacheInvalidationServiceComponent {
                     DataHolder.getInstance().getAPIManagerConfigurationService().getAPIManagerConfiguration()
                             .getCacheInvalidationConfiguration();
             if (cacheInvalidationConfiguration.isEnabled()) {
+                log.info("Activating global cache invalidation service component");
                 APIMgtCacheInvalidationRequestSender apiMgtCacheInvalidationRequestSender =
                         new APIMgtCacheInvalidationRequestSender(cacheInvalidationConfiguration);
                 cacheInvalidationRequestSenderServiceRegistration = bundleContext
@@ -77,6 +81,13 @@ public class CacheInvalidationServiceComponent {
                 cacheInvalidationRequestSenderServiceRegistration = bundleContext
                         .registerService(JMSListenerShutDownService.class,
                                 apimgtCacheInvalidationServerStartupListener, null);
+                if (log.isDebugEnabled()) {
+                    log.debug("Global cache invalidation service component activated successfully");
+                }
+            } else {
+                if (log.isDebugEnabled()) {
+                    log.debug("Cache invalidation is disabled, skipping service registration");
+                }
             }
         }
     }
@@ -99,7 +110,11 @@ public class CacheInvalidationServiceComponent {
     protected void deactivate(ComponentContext componentContext) {
 
         if (cacheInvalidationRequestSenderServiceRegistration != null) {
+            log.info("Deactivating global cache invalidation service component");
             cacheInvalidationRequestSenderServiceRegistration.unregister();
+            if (log.isDebugEnabled()) {
+                log.debug("Global cache invalidation service component deactivated successfully");
+            }
         }
     }
 

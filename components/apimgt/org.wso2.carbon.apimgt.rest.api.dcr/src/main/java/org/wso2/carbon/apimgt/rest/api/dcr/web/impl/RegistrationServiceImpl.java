@@ -107,6 +107,9 @@ public class RegistrationServiceImpl implements RegistrationService {
         String applicationName = null;
         ErrorDTO errorDTO;
         try {
+            if (log.isDebugEnabled()) {
+                log.debug("Starting OAuth application registration for client: " + profile.getClientName());
+            }
             OAuthAppRequest appRequest = new OAuthAppRequest();
             OAuthApplicationInfo oauthApplicationInfo = new OAuthApplicationInfo();
             OAuthApplicationInfo returnedAPP;
@@ -125,6 +128,9 @@ public class RegistrationServiceImpl implements RegistrationService {
                 String tenantDomain = MultitenantUtils.getTenantDomain(authUserName);
                 String tenantAwareUserName = MultitenantUtils.getTenantAwareUsername(owner);
                 try {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Validating user existence for: " + tenantAwareUserName + " in domain: " + tenantDomain);
+                    }
                     int tenantId = ServiceReferenceHolder.getInstance().getRealmService().getTenantManager()
                             .getTenantId(tenantDomain);
                     UserStoreManager manager = ServiceReferenceHolder.getInstance().getRealmService()
@@ -136,6 +142,7 @@ public class RegistrationServiceImpl implements RegistrationService {
                         return Response.status(Response.Status.FORBIDDEN).entity(errorDTO).build();
                     }
                 } catch (org.wso2.carbon.user.api.UserStoreException e) {
+                    log.error("Error while checking application owner existence for user: " + owner, e);
                     throw new APIManagementException("Error while checking application owner existence.", e);
                 }
             }
@@ -210,6 +217,9 @@ public class RegistrationServiceImpl implements RegistrationService {
                 //Check if the application is already exists
                 ServiceProvider appServiceProvider = null;
                 try {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Checking existence of application: " + applicationName + " in tenant: " + loggedInUserTenantDomain);
+                    }
                     appServiceProvider =
                             applicationManagementService.getApplicationExcludingFileBasedSPs(
                                     applicationName, loggedInUserTenantDomain);
@@ -219,9 +229,15 @@ public class RegistrationServiceImpl implements RegistrationService {
                 }
                 //Retrieving the existing application
                 if (appServiceProvider != null) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Application " + applicationName + " already exists, retrieving existing app");
+                    }
                     returnedAPP = this.getExistingApp(applicationName, appServiceProvider.isSaasApp());
                 } else {
                     //create a new application if the application doesn't exists.
+                    if (log.isDebugEnabled()) {
+                        log.debug("Application " + applicationName + " does not exist, creating new application");
+                    }
                     returnedAPP = this.createApplication(applicationName, appRequest, grantTypes,
                             profile.isUserStoreDomainInSubject());
                 }
@@ -259,6 +275,7 @@ public class RegistrationServiceImpl implements RegistrationService {
             } else {
                 String errorMsg = "Logged in user '" + authUserName + "' and application owner '" +
                         owner + "' should be same.";
+                log.warn("Authorization failed - " + errorMsg);
                 errorDTO = RestApiUtil.getErrorDTO(RestApiConstants.STATUS_BAD_REQUEST_MESSAGE_DEFAULT,
                         400L, errorMsg);
                 response = Response.status(Response.Status.BAD_REQUEST).entity(errorDTO).build();
@@ -279,8 +296,14 @@ public class RegistrationServiceImpl implements RegistrationService {
     public Response unRegister(@QueryParam("applicationName") String applicationName,
             @QueryParam("userId") String userId,
             @QueryParam("consumerKey") String consumerKey) {
+        if (log.isDebugEnabled()) {
+            log.debug("Received unregistration request for application: " + applicationName + 
+                     ", userId: " + userId + ", consumerKey: " + (consumerKey != null ? "[PROTECTED]" : null));
+        }
         Response response;
         try {
+            log.warn("Dynamic Client Registration Service's resource deletion not implemented for application: " + 
+                    applicationName);
             response = Response.status(Response.Status.INTERNAL_SERVER_ERROR).
                     entity("Dynamic Client Registration Service's resource deletion not implemented.").
                     build();
@@ -301,7 +324,9 @@ public class RegistrationServiceImpl implements RegistrationService {
      * @return existing Application
      */
     private OAuthApplicationInfo getExistingApp(String applicationName, boolean saasApp) {
-
+        if (log.isDebugEnabled()) {
+            log.debug("Retrieving existing OAuth application: " + applicationName);
+        }
         OAuthApplicationInfo appToReturn = null;
         OAuthAdminService oAuthAdminService = new OAuthAdminService();
         try {
@@ -340,6 +365,9 @@ public class RegistrationServiceImpl implements RegistrationService {
      */
     private OAuthApplicationInfo createApplication(String applicationName, OAuthAppRequest appRequest, String grantType,
             boolean setUserStoreDomainInSubject) throws APIManagementException {
+        if (log.isDebugEnabled()) {
+            log.debug("Creating new OAuth application: " + applicationName + " with grant types: " + grantType);
+        }
         String userName;
         OAuthApplicationInfo applicationInfo = appRequest.getOAuthApplicationInfo();
         String appName = applicationInfo.getClientName();
@@ -347,12 +375,16 @@ public class RegistrationServiceImpl implements RegistrationService {
         boolean isTenantFlowStarted = false;
 
         if (userId == null || userId.isEmpty()) {
+            log.error("User ID is null or empty for application: " + applicationName);
             return null;
         }
         userName = MultitenantUtils.getTenantAwareUsername(userId);
         String tenantDomain = MultitenantUtils.getTenantDomain(userId);
 
         try {
+            if (log.isDebugEnabled()) {
+                log.debug("Setting up context for user: " + userName + " in tenant: " + tenantDomain);
+            }
             PrivilegedCarbonContext.getThreadLocalCarbonContext().setUsername(userName);
             if (tenantDomain != null && !MultitenantConstants.SUPER_TENANT_DOMAIN_NAME.
                     equals(tenantDomain)) {
@@ -411,14 +443,18 @@ public class RegistrationServiceImpl implements RegistrationService {
             ServiceProviderProperty[] spPropertyArr = serviceProviderProperties.toArray(new ServiceProviderProperty[0]);
             serviceProvider.setSpProperties(spPropertyArr);
             ApplicationManagementService appMgtService = ApplicationManagementService.getInstance();
+            if (log.isDebugEnabled()) {
+                log.debug("Creating service provider for application: " + applicationName);
+            }
             appMgtService.createApplication(serviceProvider, tenantDomain, userName);
 
             //Retrieving the created service provider
             ServiceProvider createdServiceProvider =
                     appMgtService.getApplicationExcludingFileBasedSPs(applicationName, tenantDomain);
             if (createdServiceProvider == null) {
-                throw new APIManagementException("Error occurred while creating Service Provider " +
-                        "Application" + appName);
+                String errorMsg = "Error occurred while creating Service Provider Application " + appName;
+                log.error(errorMsg);
+                throw new APIManagementException(errorMsg);
             }
 
             //creating the OAuth app
@@ -456,6 +492,9 @@ public class RegistrationServiceImpl implements RegistrationService {
             createdServiceProvider.setSpProperties(spPropertyArr);
 
             //Updating the service provider with Inbound Authentication Configs and SaasApplication
+            if (log.isDebugEnabled()) {
+                log.debug("Updating service provider with OAuth configurations for: " + applicationName);
+            }
             appMgtService.updateApplication(createdServiceProvider, tenantDomain, userName);
 
             Map<String, String> valueMap = new HashMap<String, String>();
@@ -487,6 +526,9 @@ public class RegistrationServiceImpl implements RegistrationService {
      */
     private OAuthConsumerAppDTO createOAuthApp(String appName, OAuthApplicationInfo applicationInfo,
             String grantTypes, String userName) {
+        if (log.isDebugEnabled()) {
+            log.debug("Creating OAuth consumer app: " + appName + " for user: " + userName);
+        }
         OAuthConsumerAppDTO createdApp = null;
         OAuthAdminService oauthAdminService = new OAuthAdminService();
         OAuthConsumerAppDTO oauthConsumerAppDTO = new OAuthConsumerAppDTO();

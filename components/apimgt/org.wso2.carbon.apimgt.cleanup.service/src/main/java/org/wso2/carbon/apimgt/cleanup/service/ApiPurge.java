@@ -107,6 +107,9 @@ public class ApiPurge implements OrganizationPurge {
     @MethodStats
     @Override
     public LinkedHashMap<String, String> purge(String organization) {
+        if (log.isDebugEnabled()) {
+            log.debug("Starting API data purge process for organization: " + organization);
+        }
         List<APIIdentifier> apiIdentifierList = new ArrayList<>();
         boolean isAPIOrganizationExist = true;
         for (Map.Entry<String, String> task : apiPurgeTaskMap.entrySet()) {
@@ -116,30 +119,48 @@ public class ApiPurge implements OrganizationPurge {
                 try {
                     switch (task.getKey()) {
                     case APIConstants.OrganizationDeletion.API_ORG_EXIST:
+                        if (log.isDebugEnabled()) {
+                            log.debug("Checking if API data exists for organization: " + organization);
+                        }
                         isAPIOrganizationExist = organizationPurgeDAO.apiOrganizationExist(organization);
                         break;
                     case APIConstants.OrganizationDeletion.API_RETRIEVER:
+                        log.info("Retrieving API list for organization: " + organization);
                         apiIdentifierList = organizationPurgeDAO.getAPIIdList(organization);
+                        if (log.isDebugEnabled()) {
+                            log.debug("Retrieved " + (apiIdentifierList != null ? apiIdentifierList.size() : 0) 
+                                    + " APIs for organization: " + organization);
+                        }
                         break;
                     case APIConstants.OrganizationDeletion.API_DB_DATA_REMOVER:
+                        log.info("Removing API database data for organization: " + organization);
                         organizationPurgeDAO.deleteOrganizationAPIList(organization);
                         break;
                     case APIConstants.OrganizationDeletion.ARTIFACT_SERVER_DATA_REMOVER:
+                        log.info("Removing API artifacts from artifact server for organization: " + organization);
                         removeArtifactsFromArtifactServer(apiIdentifierList, organization);
                         break;
                     case APIConstants.OrganizationDeletion.GW_ARTIFACT_DATA_REMOVER:
+                        log.info("Removing gateway artifacts for organization: " + organization);
                         gatewayArtifactsMgtDAO.removeOrganizationGatewayArtifacts(organization);
                         break;
                     case APIConstants.OrganizationDeletion.API_ARTIFACT_DATA_REMOVER:
+                        log.info("Removing all API artifacts for organization: " + organization);
                         removeAllOrganizationAPIArtifacts(organization);
                         break;
                     }
                     apiPurgeTaskMap.put(task.getKey(), APIConstants.OrganizationDeletion.COMPLETED);
+                    if (log.isDebugEnabled()) {
+                        log.debug("Successfully completed task: " + task.getKey() + " for organization: " 
+                                + organization);
+                    }
                     break;
                 } catch (APIManagementException e) {
-                    log.error("Error while deleting API Data in organization " + organization, e);
+                    log.error("Error while deleting API Data in organization " + organization + " for task: " 
+                            + task.getKey(), e);
                     apiPurgeTaskMap.put(task.getKey(), APIConstants.OrganizationDeletion.FAIL);
-                    log.info("Re-trying to execute " + task.getKey() + " process for organization" + organization, e);
+                    log.warn("Re-trying to execute " + task.getKey() + " process for organization: " + organization 
+                            + " (attempt " + (count + 1) + " of " + maxTries + ")");
 
                     if (++count == maxTries) {
                         log.error("Cannot execute " + task.getKey() + " process for organization" + organization, e);
@@ -161,6 +182,7 @@ public class ApiPurge implements OrganizationPurge {
             }
         }
 
+        log.info("API data purge process completed for organization: " + organization);
         APIUtil.logAuditMessage(APIConstants.AuditLogConstants.ORGANIZATION, new Gson().toJson(apiPurgeTaskMap),
                 APIConstants.AuditLogConstants.DELETED, OrganizationPurgeConstants.ORG_CLEANUP_EXECUTOR);
         return apiPurgeTaskMap;
@@ -183,21 +205,32 @@ public class ApiPurge implements OrganizationPurge {
             throws APIManagementException {
 
         if (artifactSaver != null) {
+            if (log.isDebugEnabled()) {
+                log.debug("Removing " + (apiIdentifierList != null ? apiIdentifierList.size() : 0) 
+                        + " API artifacts from artifact server for organization: " + orgId);
+            }
             try {
                 for (APIIdentifier apiIdentifier : apiIdentifierList) {
                     artifactSaver.removeArtifact(apiIdentifier.getUUID(), apiIdentifier.getApiName(),
                             apiIdentifier.getVersion(), orgId);
+                    if (log.isDebugEnabled()) {
+                        log.debug("Removed artifact for API: " + apiIdentifier.getApiName() + " from organization: " 
+                                + orgId);
+                    }
                 }
             } catch (ArtifactSynchronizerException e) {
-                log.error("Error while deleting Runtime artifacts in organization" + orgId +
-                        "from artifact Store", e);
+                log.error("Error while deleting Runtime artifacts in organization: " + orgId 
+                        + " from artifact Store", e);
                 handleException("Failed to delete artifacts of organization " + orgId + " from artifact server.", e);
             }
+        } else {
+            log.warn("Artifact saver is not available for removing artifacts from organization: " + orgId);
         }
     }
 
     private void moveStatusToCompleted() {
-        apiPurgeTaskMap.put(APIConstants.OrganizationDeletion.API_RETRIEVER, APIConstants.OrganizationDeletion.COMPLETED);
+        apiPurgeTaskMap.put(APIConstants.OrganizationDeletion.API_RETRIEVER, 
+                APIConstants.OrganizationDeletion.COMPLETED);
         apiPurgeTaskMap.put(APIConstants.OrganizationDeletion.API_DB_DATA_REMOVER,
                 APIConstants.OrganizationDeletion.COMPLETED);
         apiPurgeTaskMap.put(APIConstants.OrganizationDeletion.ARTIFACT_SERVER_DATA_REMOVER,

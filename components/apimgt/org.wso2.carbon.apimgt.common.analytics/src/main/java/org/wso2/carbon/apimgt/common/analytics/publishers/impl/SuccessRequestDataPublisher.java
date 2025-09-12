@@ -38,8 +38,15 @@ public class SuccessRequestDataPublisher extends AbstractRequestDataPublisher {
 
     @Override
     public List<CounterMetric> getMultipleCounterMetrics() {
+        if (log.isDebugEnabled()) {
+            log.debug("Retrieving success counter metrics");
+        }
         try {
-            return AnalyticsDataPublisher.getInstance().getSuccessMetricReporters();
+            List<CounterMetric> metrics = AnalyticsDataPublisher.getInstance().getSuccessMetricReporters();
+            if (log.isDebugEnabled()) {
+                log.debug("Retrieved " + metrics.size() + " success counter metrics");
+            }
+            return metrics;
         } catch (MetricCreationException e) {
             log.error("Unable to get success counter metrics", e);
             return null;

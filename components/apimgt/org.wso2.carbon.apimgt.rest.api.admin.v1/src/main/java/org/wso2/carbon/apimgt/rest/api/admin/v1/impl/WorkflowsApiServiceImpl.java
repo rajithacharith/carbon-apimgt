@@ -68,16 +68,24 @@ public class WorkflowsApiServiceImpl implements WorkflowsApiService {
     @Override
     public Response workflowsExternalWorkflowRefGet(String externalWorkflowRef, MessageContext messageContext)
             throws APIManagementException {
+        if (log.isDebugEnabled()) {
+            log.debug("Retrieving workflow by external reference: " + externalWorkflowRef);
+        }
         WorkflowInfoDTO workflowinfoDTO;
         try {
             Workflow workflow;
             String status = "CREATED";
             String tenantDomain = RestApiCommonUtil.getLoggedInUserTenantDomain();
             APIAdmin apiAdmin = new APIAdminImpl();
-            workflow = apiAdmin.getworkflowReferenceByExternalWorkflowReferenceID(externalWorkflowRef, status, tenantDomain);
+            workflow = apiAdmin.getworkflowReferenceByExternalWorkflowReferenceID(externalWorkflowRef, status, 
+                    tenantDomain);
             workflowinfoDTO = WorkflowMappingUtil.fromWorkflowsToInfoDTO(workflow);
+            if (log.isDebugEnabled()) {
+                log.debug("Retrieved workflow details for external reference: " + externalWorkflowRef);
+            }
             return Response.ok().entity(workflowinfoDTO).build();
         } catch (APIManagementException e) {
+            log.error("Error while retrieving workflow by external reference: " + externalWorkflowRef, e);
             RestApiUtil.handleInternalServerError("Error while retrieving workflow request by the " +
                     "external workflow reference. ", e, log);
         }
@@ -96,6 +104,10 @@ public class WorkflowsApiServiceImpl implements WorkflowsApiService {
     @Override
     public Response workflowsGet(Integer limit, Integer offset, String accept, String workflowType,
                                  MessageContext messageContext) throws APIManagementException {
+        if (log.isDebugEnabled()) {
+            log.debug("Retrieving workflows with limit: " + limit + ", offset: " + offset + 
+                    ", type: " + workflowType);
+        }
         limit = limit != null ? limit : RestApiConstants.PAGINATION_LIMIT_DEFAULT;
         offset = offset != null ? offset : RestApiConstants.PAGINATION_OFFSET_DEFAULT;
         String tenantDomain = RestApiCommonUtil.getLoggedInUserTenantDomain();

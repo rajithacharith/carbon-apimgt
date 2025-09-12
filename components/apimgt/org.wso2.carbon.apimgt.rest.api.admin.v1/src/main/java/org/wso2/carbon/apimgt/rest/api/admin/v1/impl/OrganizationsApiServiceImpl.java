@@ -34,6 +34,8 @@ import org.wso2.carbon.apimgt.rest.api.common.RestApiConstants;
 import org.wso2.carbon.apimgt.rest.api.util.utils.RestApiUtil;
 
 import com.google.gson.Gson;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import org.apache.cxf.jaxrs.ext.MessageContext;
 
@@ -46,8 +48,12 @@ import javax.ws.rs.core.Response;
 
 public class OrganizationsApiServiceImpl implements OrganizationsApiService {
 
-    public Response organizationsGet(MessageContext messageContext) throws APIManagementException {
+    private static final Log log = LogFactory.getLog(OrganizationsApiServiceImpl.class);
 
+    public Response organizationsGet(MessageContext messageContext) throws APIManagementException {
+        if (log.isDebugEnabled()) {
+            log.debug("Retrieving all organizations");
+        }
         APIAdmin apiAdmin = new APIAdminImpl();
         try {
             String superOrganization = RestApiUtil.getValidatedOrganization(messageContext);
@@ -60,16 +66,24 @@ public class OrganizationsApiServiceImpl implements OrganizationsApiService {
             List<OrganizationDetailsDTO> orgList = apiAdmin.getOrganizations(parentOrgId,
                     superOrganization);
 
-            OrganizationListDTO organizationsListDTO = OrganizationsMappingUtil.toOrganizationsListDTO(orgList, parentOrgId);
+            OrganizationListDTO organizationsListDTO = OrganizationsMappingUtil.toOrganizationsListDTO(orgList, 
+                    parentOrgId);
+            if (log.isDebugEnabled()) {
+                log.debug("Retrieved " + orgList.size() + " organizations for parent: " + parentOrgId);
+            }
             return Response.ok().entity(organizationsListDTO).build();
         } catch (APIManagementException e) {
             String errorMessage = "Error while retrieving Organizations";
+            log.error(errorMessage, e);
             throw new APIManagementException(errorMessage, e, ExceptionCodes.INTERNAL_ERROR);
         }
     }
 
     public Response organizationsOrganizationIdDelete(String organizationId, MessageContext messageContext)
             throws APIManagementException {
+        if (log.isDebugEnabled()) {
+            log.debug("Deleting organization with ID: " + organizationId);
+        }
         APIAdmin apiAdmin = new APIAdminImpl();
         try {
             String superOrganization = RestApiUtil.getValidatedOrganization(messageContext);
@@ -80,18 +94,22 @@ public class OrganizationsApiServiceImpl implements OrganizationsApiService {
                         ExceptionCodes.INVALID_ORGANINATION);
             }
             apiAdmin.deleteOrganization(organizationId, superOrganization);
-
+            log.info("Successfully deleted organization: " + organizationId);
             APIUtil.logAuditMessage(APIConstants.AuditLogConstants.ORGANIZATION, new Gson().toJson(organizationInfoDTO),
                     APIConstants.AuditLogConstants.DELETED, RestApiCommonUtil.getLoggedInUsername());
             return Response.ok().build();
         } catch (APIManagementException e) {
             String errorMessage = "Error while deleting Organizations";
+            log.error(errorMessage + " with ID: " + organizationId, e);
             throw new APIManagementException(errorMessage, e, ExceptionCodes.INTERNAL_ERROR);
         }
     }
 
     public Response organizationsOrganizationIdPut(String organizationId, OrganizationDTO organizationDTO,
             MessageContext messageContext) throws APIManagementException {
+        if (log.isDebugEnabled()) {
+            log.debug("Updating organization with ID: " + organizationId);
+        }
         APIAdmin apiAdmin = new APIAdminImpl();
         try {
             String superOrganization = RestApiUtil.getValidatedOrganization(messageContext);
@@ -112,6 +130,7 @@ public class OrganizationsApiServiceImpl implements OrganizationsApiService {
             organizationInfoDTO.setDescription(organizationDTO.getDescription());
             OrganizationDetailsDTO updatedOrganizationInfoDTO = apiAdmin.updateOrganization(organizationInfoDTO,
                     parentOrgId, superOrganization);
+            log.info("Successfully updated organization: " + organizationId);
             APIUtil.logAuditMessage(APIConstants.AuditLogConstants.ORGANIZATION,
                     new Gson().toJson(updatedOrganizationInfoDTO), APIConstants.AuditLogConstants.UPDATED,
                     RestApiCommonUtil.getLoggedInUsername());
@@ -126,6 +145,9 @@ public class OrganizationsApiServiceImpl implements OrganizationsApiService {
 
     public Response organizationsPost(OrganizationDTO organizationDTO, MessageContext messageContext)
             throws APIManagementException {
+        if (log.isDebugEnabled()) {
+            log.debug("Creating new organization: " + organizationDTO.getDisplayName());
+        }
         APIAdmin apiAdmin = new APIAdminImpl();
         try {
             OrganizationInfo orgInfo = RestApiUtil.getOrganizationInfo(messageContext);
@@ -140,6 +162,8 @@ public class OrganizationsApiServiceImpl implements OrganizationsApiService {
             }
             OrganizationDetailsDTO orgDto = OrganizationsMappingUtil.toOrganizationDetailsDTO(organizationDTO);
             orgDto = apiAdmin.addOrganization(orgDto, parentOrgId, superOrganization);
+            log.info("Successfully created organization: " + organizationDTO.getDisplayName() + 
+                    " with ID: " + orgDto.getOrganizationId());
             APIUtil.logAuditMessage(APIConstants.AuditLogConstants.ORGANIZATION,
                     new Gson().toJson(orgDto),
                     APIConstants.AuditLogConstants.CREATED, RestApiCommonUtil.getLoggedInUsername());
@@ -155,6 +179,9 @@ public class OrganizationsApiServiceImpl implements OrganizationsApiService {
     @Override
     public Response organizationsOrganizationIdGet(String organizationId, MessageContext messageContext)
             throws APIManagementException {
+        if (log.isDebugEnabled()) {
+            log.debug("Retrieving organization details for ID: " + organizationId);
+        }
         APIAdmin apiAdmin = new APIAdminImpl();
         try {
             String superOrganization = RestApiUtil.getValidatedOrganization(messageContext);
@@ -174,6 +201,7 @@ public class OrganizationsApiServiceImpl implements OrganizationsApiService {
             return Response.ok().entity(returnedorganizationDTO).build();
         } catch (APIManagementException e) {
             String errorMessage = "Error while retrieving Organizations";
+            log.error(errorMessage + " with ID: " + organizationId, e);
             throw new APIManagementException(errorMessage, e, ExceptionCodes.INTERNAL_ERROR);
         }
     }

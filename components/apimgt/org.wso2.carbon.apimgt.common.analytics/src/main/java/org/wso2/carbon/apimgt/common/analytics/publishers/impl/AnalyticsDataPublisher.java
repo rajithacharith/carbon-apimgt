@@ -104,14 +104,23 @@ public class AnalyticsDataPublisher {
     }
 
     public void initialize(AnalyticsCommonConfiguration commonConfig) {
+        log.info("Initializing AnalyticsDataPublisher");
         Map<String, String> configs = commonConfig.getConfigurations();
         String reporterClass = configs.get("publisher.reporter.class");
         List<String> reporterTypes = getReporterTypesOrNull(configs.get("type"));
         List<String> reporterClasses = getReportersClassesOrNull(configs);
+        if (log.isDebugEnabled()) {
+            log.debug("Publisher reporter class: " + reporterClass);
+            log.debug("Reporter types: " + reporterTypes);
+            log.debug("Reporter classes: " + reporterClasses);
+        }
         try {
             List<MetricReporter> metricReporters = new ArrayList<>();
             MetricReporter metricReporter;
             if (reporterClass != null) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Creating metric reporter with class: " + reporterClass);
+                }
                 metricReporter = MetricReporterFactory.getInstance()
                         .createMetricReporter(reporterClass, configs);
                 metricReporters.add(metricReporter);
@@ -175,6 +184,7 @@ public class AnalyticsDataPublisher {
 
             // not necessary to handle IllegalArgumentException here
             // since we are handling it in getSuccessOrFaultyCounterMetrics method
+            log.info("AnalyticsDataPublisher initialization completed successfully");
         } catch (MetricCreationException e) {
             log.error("Error while creating the metric reporter", e);
         }

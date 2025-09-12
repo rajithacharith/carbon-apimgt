@@ -82,7 +82,9 @@ public class ExtendedHTTPEventAdapter implements OutputEventAdapter {
 
     @Override
     public void init() throws OutputEventAdapterException {
-
+        if (log.isDebugEnabled()) {
+            log.debug("Initializing Extended HTTP Event Adapter for tenant: " + tenantId);
+        }
         tenantId = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantId();
 
         //ExecutorService will be assigned  if it is null
@@ -122,6 +124,10 @@ public class ExtendedHTTPEventAdapter implements OutputEventAdapter {
             }
             executorService = new ThreadPoolExecutor(minThread, maxThread, defaultKeepAliveTime, TimeUnit.MILLISECONDS,
                     new LinkedBlockingQueue<Runnable>(jobQueSize));
+            if (log.isDebugEnabled()) {
+                log.debug("Created thread pool executor with minThread: " + minThread + ", maxThread: " + maxThread
+                        + ", keepAliveTime: " + defaultKeepAliveTime + ", jobQueueSize: " + jobQueSize);
+            }
 
             //configurations for the httpConnectionManager which will be shared by every http adapter
             int defaultMaxConnectionsPerHost;
@@ -146,6 +152,10 @@ public class ExtendedHTTPEventAdapter implements OutputEventAdapter {
             connectionManager = new MultiThreadedHttpConnectionManager();
             connectionManager.getParams().setDefaultMaxConnectionsPerHost(defaultMaxConnectionsPerHost);
             connectionManager.getParams().setMaxTotalConnections(maxTotalConnections);
+            if (log.isDebugEnabled()) {
+                log.debug("Configured HTTP connection manager with maxConnectionsPerHost: " 
+                        + defaultMaxConnectionsPerHost + ", maxTotalConnections: " + maxTotalConnections);
+            }
 
             Map<String, String> staticProperties = eventAdapterConfiguration.getStaticProperties();
             if (staticProperties.get(ExtendedHTTPEventAdapterConstants.ADAPTER_OAUTH_CONSUMER_KEY) != null) {
@@ -154,6 +164,9 @@ public class ExtendedHTTPEventAdapter implements OutputEventAdapter {
                         staticProperties.get(ExtendedHTTPEventAdapterConstants.ADAPTER_OAUTH_CONSUMER_KEY),
                         staticProperties.get(ExtendedHTTPEventAdapterConstants.ADAPTER_OAUTH_CONSUMER_SECRET));
                 this.oauthURL = staticProperties.get(ExtendedHTTPEventAdapterConstants.ADAPTER_OAUTH_URL);
+                if (log.isDebugEnabled()) {
+                    log.debug("OAuth access token generator configured for URL: " + this.oauthURL);
+                }
             }
         }
     }
@@ -166,7 +179,9 @@ public class ExtendedHTTPEventAdapter implements OutputEventAdapter {
 
     @Override
     public void connect() {
-
+        if (log.isDebugEnabled()) {
+            log.debug("Connecting Extended HTTP Event Adapter");
+        }
         this.checkHTTPClientInit(eventAdapterConfiguration.getStaticProperties());
     }
 
@@ -189,14 +204,23 @@ public class ExtendedHTTPEventAdapter implements OutputEventAdapter {
                         this.oauthURL = endpointURL.getProtocol() + "://" + endpointURL.getHost() + ":"
                                 + endpointURL.getPort();
                         accessTokenGenerator.setOauthUrl(oauthURL);
+                        if (log.isDebugEnabled()) {
+                            log.debug("OAuth URL derived from endpoint: " + this.oauthURL);
+                        }
                     } catch (MalformedURLException e) {
                         EventAdapterUtil.logAndDrop(eventAdapterConfiguration.getName(), message,
                                 "Incorrect end point configurations", log, tenantId);
                     }
                 }
                 String accessToken = accessTokenGenerator.getAccessToken();
+                if (log.isDebugEnabled()) {
+                    log.debug("Publishing message using OAuth authentication to URL: " + url);
+                }
                 executorService.execute(new HTTPSender(url, payload, accessToken, headers, httpClient));
             } else if (username != null && password != null) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Publishing message using basic authentication to URL: " + url);
+                }
                 executorService.execute(new HTTPSender(url, payload, username, password, headers, httpClient));
             } else {
                 EventAdapterUtil.logAndDrop(eventAdapterConfiguration.getName(), message,
@@ -236,12 +260,18 @@ public class ExtendedHTTPEventAdapter implements OutputEventAdapter {
             }
 
             httpClient = new HttpClient(connectionManager);
+            if (log.isDebugEnabled()) {
+                log.debug("HTTP client initialized with connection manager");
+            }
             String proxyHost = staticProperties.get(ExtendedHTTPEventAdapterConstants.ADAPTER_PROXY_HOST);
             String proxyPort = staticProperties.get(ExtendedHTTPEventAdapterConstants.ADAPTER_PROXY_PORT);
             if (proxyHost != null && proxyHost.trim().length() > 0) {
                 try {
                     HttpHost host = new HttpHost(proxyHost, Integer.parseInt(proxyPort));
                     this.httpClient.getParams().setParameter(ConnRoutePNames.DEFAULT_PROXY, host);
+                    if (log.isDebugEnabled()) {
+                        log.debug("Proxy configured with host: " + proxyHost + ", port: " + proxyPort);
+                    }
                 } catch (NumberFormatException e) {
                     log.error("Invalid proxy port: " + proxyPort + ", "
                             + "ignoring proxy settings for HTTP output event adaptor.", e);
@@ -390,7 +420,13 @@ public class ExtendedHTTPEventAdapter implements OutputEventAdapter {
                     }
                 }
                 int statusCode = this.getHttpClient().executeMethod(hostConfiguration, method);
+                if (log.isDebugEnabled()) {
+                    log.debug("HTTP request completed with status code: " + statusCode + " for URL: " + this.getUrl());
+                }
                 if (statusCode == HttpStatus.SC_UNAUTHORIZED && accessTokenGenerator != null){
+                    if (log.isDebugEnabled()) {
+                        log.debug("Received unauthorized response, removing invalid OAuth token");
+                    }
                     accessTokenGenerator.removeInvalidToken(new String[]{APIConstants.OAUTH2_DEFAULT_SCOPE});
                 }
             } catch (IOException e) {

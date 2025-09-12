@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 import org.json.simple.parser.JSONParser;
@@ -41,6 +43,7 @@ import com.google.gson.Gson;
 
 @Mapper
 public interface APIProductMapper {
+    Log log = LogFactory.getLog(APIProductMapper.class);
     APIProductMapper INSTANCE = Mappers.getMapper(APIProductMapper.class);
     
     //@Mapping(source = "providerName", target = "id.providerName")
@@ -66,10 +69,21 @@ public interface APIProductMapper {
     
     default JSONObject mapJSONMapToJSONObject(Map<String,String> jsonMap) throws ParseException {
         if (jsonMap != null) {
-            JSONParser parser = new JSONParser();
-            String jsonText = JSONValue.toJSONString(jsonMap);
-            JSONObject jsonObject = (JSONObject) parser.parse(jsonText);
-            return jsonObject;
+            if (log.isDebugEnabled()) {
+                log.debug("Converting API product JSON map to JSONObject with " + jsonMap.size() + " entries");
+            }
+            try {
+                JSONParser parser = new JSONParser();
+                String jsonText = JSONValue.toJSONString(jsonMap);
+                JSONObject jsonObject = (JSONObject) parser.parse(jsonText);
+                return jsonObject;
+            } catch (ParseException e) {
+                log.error("Failed to parse API product JSON map to JSONObject: " + e.getMessage());
+                throw e;
+            }
+        }
+        if (log.isDebugEnabled()) {
+            log.debug("API product JSON map is null, returning null JSONObject");
         }
         return null;
     }
@@ -77,10 +91,20 @@ public interface APIProductMapper {
     default Map<String, Object> JSONObjectToJSONMap(JSONObject jsonObject){
         Gson gson = new Gson();
         if (jsonObject != null) {
-            jsonObject.toJSONString();
-            Map<String,Object> fromJson = gson.fromJson(jsonObject.toJSONString(), Map.class);
-
-            return fromJson;
+            if (log.isDebugEnabled()) {
+                log.debug("Converting API product JSONObject to map");
+            }
+            try {
+                jsonObject.toJSONString();
+                Map<String,Object> fromJson = gson.fromJson(jsonObject.toJSONString(), Map.class);
+                return fromJson;
+            } catch (Exception e) {
+                log.error("Failed to convert API product JSONObject to map: " + e.getMessage());
+                return null;
+            }
+        }
+        if (log.isDebugEnabled()) {
+            log.debug("API product JSONObject is null, returning null map");
         }
         return null;
     }
@@ -116,7 +140,12 @@ public interface APIProductMapper {
 
     default Date mapStringToDate(String dateString) {
         if (dateString != null) {
-            return new Date(Long.parseLong(dateString));
+            try {
+                return new Date(Long.parseLong(dateString));
+            } catch (NumberFormatException e) {
+                log.error("Failed to parse date string for API product: " + dateString + ". " + e.getMessage());
+                return null;
+            }
         }
         return null;
     }
@@ -159,8 +188,14 @@ public interface APIProductMapper {
 
     default Set<String> mapAccessControlRolesToSet(String accessControlRoles){
         if (accessControlRoles != null && !"null".equalsIgnoreCase(accessControlRoles)) {
+            if (log.isDebugEnabled()) {
+                log.debug("Mapping API product access control roles from string: " + accessControlRoles);
+            }
             return  new HashSet<>(Arrays.asList(accessControlRoles.split(",")));
         } else {
+            if (log.isDebugEnabled()) {
+                log.debug("API product access control roles string is null or 'null', returning null set");
+            }
             return null;
         }
     }

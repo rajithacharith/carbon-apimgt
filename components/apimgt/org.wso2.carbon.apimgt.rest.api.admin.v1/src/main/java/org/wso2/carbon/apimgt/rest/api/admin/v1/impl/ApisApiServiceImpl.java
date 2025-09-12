@@ -61,17 +61,26 @@ public class ApisApiServiceImpl implements ApisApiService {
      */
     public Response getAllAPIs(Integer limit, Integer offset, String query, String ifNoneMatch,
                                MessageContext messageContext) throws APIManagementException {
+        if (log.isDebugEnabled()) {
+            log.debug("Retrieving all APIs with limit: " + limit + ", offset: " + offset + ", query: " + query);
+        }
         SearchResultListDTO resultListDTO = new SearchResultListDTO();
         limit = limit != null ? limit : RestApiConstants.PAGINATION_LIMIT_DEFAULT;
         offset = offset != null ? offset : RestApiConstants.PAGINATION_OFFSET_DEFAULT;
         query = query == null ? APIConstants.CHAR_ASTERIX : query;
         APIProvider apiProvider = RestApiCommonUtil.getLoggedInUserProvider();
         String organization = RestApiUtil.getOrganization(messageContext);
+        if (log.isDebugEnabled()) {
+            log.debug("Searching APIs for organization: " + organization);
+        }
         Map<String, Object> result = apiProvider.searchPaginatedAPIs(query, organization, offset, limit);
         List<Object> apis = SearchApiServiceImplUtil.getAPIListFromAPISearchResult(result);
         List<ApiResultDTO> allMatchedResults = getAllMatchedResults(apis);
         resultListDTO.setApis(allMatchedResults);
         resultListDTO.setCount(allMatchedResults.size());
+        if (log.isDebugEnabled()) {
+            log.debug("Retrieved " + allMatchedResults.size() + " APIs for organization: " + organization);
+        }
         return Response.ok().entity(resultListDTO).build();
     }
 
@@ -86,6 +95,9 @@ public class ApisApiServiceImpl implements ApisApiService {
      */
     public Response providerNamePost(String provider, String apiId, MessageContext messageContext)
             throws APIManagementException {
+        if (log.isDebugEnabled()) {
+            log.debug("Changing API provider for API: " + apiId + " to provider: " + provider);
+        }
         String organization = RestApiCommonUtil.getLoggedInUserTenantDomain();
         try {
             if (!APIUtil.isUserExist(provider)) {
@@ -99,7 +111,9 @@ public class ApisApiServiceImpl implements ApisApiService {
             }
             APIAdmin apiAdmin = new APIAdminImpl();
             apiAdmin.updateApiProvider(apiId, provider, organization);
+            log.info("Successfully changed API provider for API: " + apiId + " to provider: " + provider);
         } catch (APIManagementException e) {
+            log.error("Error while changing API provider for API: " + apiId + " to provider: " + provider, e);
             throw new APIManagementException("Error while changing the API provider. " + e.getMessage(), e,
                     ExceptionCodes.CHANGE_API_PROVIDER_FAILED);
         }

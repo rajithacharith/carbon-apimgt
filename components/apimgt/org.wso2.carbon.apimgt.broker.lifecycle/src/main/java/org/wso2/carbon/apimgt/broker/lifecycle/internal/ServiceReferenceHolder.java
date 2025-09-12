@@ -20,7 +20,8 @@
 
 package org.wso2.carbon.apimgt.broker.lifecycle.internal;
 
-
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.andes.service.QpidService;
 import org.wso2.carbon.apimgt.impl.jms.listener.JMSListenerShutDownService;
 
@@ -29,6 +30,7 @@ import java.util.Set;
 
 public class ServiceReferenceHolder {
 
+    private static final Log log = LogFactory.getLog(ServiceReferenceHolder.class);
     private static ServiceReferenceHolder instance = new ServiceReferenceHolder();
     private boolean shutDownStatus = false;
 
@@ -57,14 +59,29 @@ public class ServiceReferenceHolder {
 
     public void setQpidService(QpidService qpidService) {
         this.qpidService = qpidService;
+        if (log.isDebugEnabled()) {
+            log.debug("QpidService reference " + (qpidService != null ? "set" : "cleared") + 
+                    " in ServiceReferenceHolder");
+        }
     }
 
     public void addListenerShutdownService(JMSListenerShutDownService shutDownService) {
-        this.listenerShutdownServiceSet.add(shutDownService);
+        if (shutDownService != null) {
+            this.listenerShutdownServiceSet.add(shutDownService);
+            if (log.isDebugEnabled()) {
+                log.debug("JMS Listener Shutdown Service added to ServiceReferenceHolder. Total services: " + 
+                        listenerShutdownServiceSet.size());
+            }
+        }
     }
 
     public void removeListenerShutdownService(JMSListenerShutDownService shutDownService) {
-        this.listenerShutdownServiceSet.remove(shutDownService);
+        if (shutDownService != null && this.listenerShutdownServiceSet.remove(shutDownService)) {
+            if (log.isDebugEnabled()) {
+                log.debug("JMS Listener Shutdown Service removed from ServiceReferenceHolder. Total services: " + 
+                        listenerShutdownServiceSet.size());
+            }
+        }
     }
 
     public Set<JMSListenerShutDownService> getListenerShutdownServices() {

@@ -80,6 +80,9 @@ public class ThrottlingApiServiceImpl implements ThrottlingApiService {
      */
     @Override
     public Response throttlingPoliciesAdvancedGet(String accept, MessageContext messageContext) {
+        if (log.isDebugEnabled()) {
+            log.debug("Retrieving all advanced throttling policies");
+        }
         try {
             APIAdmin apiAdmin = new APIAdminImpl();
             String userName = RestApiCommonUtil.getLoggedInUsername();
@@ -91,9 +94,13 @@ public class ThrottlingApiServiceImpl implements ThrottlingApiService {
             }
             AdvancedThrottlePolicyListDTO listDTO = AdvancedThrottlePolicyMappingUtil
                     .fromAPIPolicyArrayToListDTO(policies.toArray(new APIPolicy[policies.size()]));
+            if (log.isDebugEnabled()) {
+                log.debug("Retrieved " + policies.size() + " advanced throttling policies");
+            }
             return Response.ok().entity(listDTO).build();
         } catch (APIManagementException e) {
             String errorMessage = "Error while retrieving Advanced level policies";
+            log.error(errorMessage, e);
             RestApiUtil.handleInternalServerError(errorMessage, e, log);
         }
         return null;

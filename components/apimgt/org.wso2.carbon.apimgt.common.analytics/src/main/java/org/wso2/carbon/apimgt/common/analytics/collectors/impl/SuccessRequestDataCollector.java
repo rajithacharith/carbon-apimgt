@@ -63,6 +63,9 @@ public class SuccessRequestDataCollector extends CommonRequestDataCollector impl
 
     public void collectData() throws AnalyticsException {
         log.debug("Handling success analytics types");
+        if (log.isDebugEnabled()) {
+            log.debug("Processing success request data collection");
+        }
 
         long requestInTime = provider.getRequestTime();
         String offsetDateTime = getTimeInISO(requestInTime);
@@ -72,15 +75,23 @@ public class SuccessRequestDataCollector extends CommonRequestDataCollector impl
 
         // Masking the configured data
         Map<String, String> maskData = provider.getMaskProperties();
-        Iterator<Map.Entry<String, String>> iterator = maskData.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<String, String> entry = iterator.next();
-            Map<String, Object> props = event.getProperties();
-            if (props != null) {
-                Object value = props.get(entry.getKey());
-                if (value != null) {
-                    String maskStr = maskAnalyticsData(entry.getValue(), value);
-                    props.replace(entry.getKey(), maskStr);
+        if (maskData != null && !maskData.isEmpty()) {
+            if (log.isDebugEnabled()) {
+                log.debug("Applying data masking for " + maskData.size() + " properties");
+            }
+            Iterator<Map.Entry<String, String>> iterator = maskData.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry<String, String> entry = iterator.next();
+                Map<String, Object> props = event.getProperties();
+                if (props != null) {
+                    Object value = props.get(entry.getKey());
+                    if (value != null) {
+                        String maskStr = maskAnalyticsData(entry.getValue(), value);
+                        props.replace(entry.getKey(), maskStr);
+                        if (log.isDebugEnabled()) {
+                            log.debug("Masked property: " + entry.getKey() + " with type: " + entry.getValue());
+                        }
+                    }
                 }
             }
         }
@@ -143,6 +154,9 @@ public class SuccessRequestDataCollector extends CommonRequestDataCollector impl
         event.setUserIp(userIp);
 
         this.processor.publish(event);
+        if (log.isDebugEnabled()) {
+            log.debug("Success analytics event published successfully");
+        }
     }
 
     private String maskAnalyticsData(String type, Object value) {

@@ -59,10 +59,14 @@ public class JWTUtil {
      * @param signedJWTInfo : Signed token info
      * @param message       : inbound message context
      */
-    public static boolean handleScopeValidation(HashMap<String,Object> message, SignedJWTInfo signedJWTInfo, String accessToken)
-            throws APIManagementException, ParseException {
+    public static boolean handleScopeValidation(HashMap<String,Object> message, SignedJWTInfo signedJWTInfo, 
+            String accessToken) throws APIManagementException, ParseException {
 
         String maskedToken = message.get(RestApiConstants.MASKED_TOKEN).toString();
+        if (log.isDebugEnabled()) {
+            log.debug("Starting JWT scope validation for token: " + maskedToken);
+        }
+        
         OAuthTokenInfo oauthTokenInfo = new OAuthTokenInfo();
         oauthTokenInfo.setAccessToken(accessToken);
         oauthTokenInfo.setEndUserName(signedJWTInfo.getJwtClaimsSet().getSubject());
@@ -108,14 +112,13 @@ public class JWTUtil {
                     return true;
                 } catch (UserStoreException e) {
                     log.error("Error while retrieving tenant id for tenant domain: " + tenantDomain, e);
+                    return false;
                 }
-                log.debug("Scope validation success for the token " + maskedToken);
-                return true;
             }
-            log.error("scopes validation failed for the token" + maskedToken);
+            log.warn("Scope validation failed for token: " + maskedToken);
             return false;
         }
-        log.error("scopes validation failed for the token" + maskedToken);
+        log.warn("Scope validation failed - no scope claim found in token: " + maskedToken);
         return false;
     }
 
@@ -133,6 +136,10 @@ public class JWTUtil {
         String verb = (String) message.get(RestApiConstants.REQUEST_METHOD);
         String resource = path.substring(basePath.length() - 1);
         String[] scopes = tokenInfo.getScopes();
+        
+        if (log.isDebugEnabled()) {
+            log.debug("Validating scopes for resource: " + resource + " with method: " + verb);
+        }
 
         String version = (String) message.get(RestApiConstants.API_VERSION);
 
@@ -178,8 +185,8 @@ public class JWTUtil {
                                 //we found scopes matches
                                 if (log.isDebugEnabled()) {
                                     log.debug("Scope validation successful for access token: " +
-                                            message.get(RestApiConstants.MASKED_TOKEN) + " with scope: " + scpObj.getKey() +
-                                            " for resource path: " + path + " and verb " + verb);
+                                            message.get(RestApiConstants.MASKED_TOKEN) + " with scope: " + 
+                                            scpObj.getKey() + " for resource path: " + path + " and verb " + verb);
                                 }
                                 return true;
                             }

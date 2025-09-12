@@ -17,6 +17,8 @@
 
 package org.wso2.carbon.apimgt.rest.api.common;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.apimgt.impl.APIManagerConfiguration;
 import org.wso2.carbon.apimgt.rest.api.common.internal.ServiceReferenceHolder;
 import org.wso2.carbon.apimgt.common.gateway.dto.TokenIssuerDto;
@@ -27,6 +29,8 @@ import java.util.Map;
 
 public class APIMConfigUtil {
 
+    private static final Log log = LogFactory.getLog(APIMConfigUtil.class);
+
     private static APIManagerConfiguration configuration = getApiManagerConfiguration();
 
     /**
@@ -34,6 +38,9 @@ public class APIMConfigUtil {
      * @return List of Audiences with basepath
      */
     public static Map<String, List<String>> getRestApiJWTAuthAudiences() {
+        if (log.isDebugEnabled()) {
+            log.debug("Retrieving REST API JWT auth audiences from configuration");
+        }
         return configuration.getRestApiJWTAuthAudiences();
     }
 
@@ -42,6 +49,9 @@ public class APIMConfigUtil {
      * @return Map<issuer, tokenIssuerDto>
      */
     public static Map<String, TokenIssuerDto> getTokenIssuerMap() {
+        if (log.isDebugEnabled()) {
+            log.debug("Retrieving token issuer map from configuration");
+        }
         return configuration.getJwtConfigurationDto().getTokenIssuerDtoMap();
     }
 
@@ -49,10 +59,16 @@ public class APIMConfigUtil {
      * @return APIManagerConfiguration
      */
     private static APIManagerConfiguration getApiManagerConfiguration() {
+        if (log.isDebugEnabled()) {
+            log.debug("Getting API manager configuration from service reference holder");
+        }
         return ServiceReferenceHolder.getInstance().getAPIMConfiguration();
     }
 
     public static  Map<String, JWTValidator> getJWTValidatorMap (){
+        if (log.isDebugEnabled()) {
+            log.debug("Retrieving JWT validator map from service reference holder");
+        }
         return ServiceReferenceHolder.getInstance().getJwtValidatorMap();
     }
 }

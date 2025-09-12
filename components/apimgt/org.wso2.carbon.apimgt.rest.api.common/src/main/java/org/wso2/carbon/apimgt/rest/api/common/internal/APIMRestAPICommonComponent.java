@@ -45,20 +45,45 @@ public class APIMRestAPICommonComponent {
     @Activate
     protected void activate(ComponentContext context) {
 
+        if (log.isDebugEnabled()) {
+            log.debug("Activating APIM REST API Common Component");
+        }
+        
         Map<String, JWTValidator> jwtValidatorMap = new HashMap<>();
         Map<String, TokenIssuerDto> tokenIssuerMap = APIMConfigUtil.getTokenIssuerMap();
-        tokenIssuerMap.forEach((issuer, tokenIssuer) -> {
-            JWTValidator jwtValidator = new JWTValidatorImpl();
-            jwtValidator.loadTokenIssuerConfiguration(tokenIssuer);
-            jwtValidatorMap.put(issuer, jwtValidator);
-        });
+        if (tokenIssuerMap != null && !tokenIssuerMap.isEmpty()) {
+            tokenIssuerMap.forEach((issuer, tokenIssuer) -> {
+                if (log.isDebugEnabled()) {
+                    log.debug("Loading JWT validator for issuer: " + issuer);
+                }
+                JWTValidator jwtValidator = new JWTValidatorImpl();
+                jwtValidator.loadTokenIssuerConfiguration(tokenIssuer);
+                jwtValidatorMap.put(issuer, jwtValidator);
+            });
+            log.info("Loaded " + jwtValidatorMap.size() + " JWT validators");
+        }
         ServiceReferenceHolder.getInstance().setJwtValidatorMap(jwtValidatorMap);
+        
+        if (log.isDebugEnabled()) {
+            log.debug("APIM REST API Common Component activated successfully");
+        }
     }
 
     @Deactivate
     protected void deactivate(ComponentContext context) {
+        if (log.isDebugEnabled()) {
+            log.debug("Deactivating APIM REST API Common Component");
+        }
+        
         if (serviceRegistration != null) {
             serviceRegistration.unregister();
+            if (log.isDebugEnabled()) {
+                log.debug("Service registration unregistered");
+            }
+        }
+        
+        if (log.isDebugEnabled()) {
+            log.debug("APIM REST API Common Component deactivated");
         }
     }
 
@@ -70,13 +95,17 @@ public class APIMRestAPICommonComponent {
             unbind = "unsetAPIManagerConfigurationService")
     protected void setAPIManagerConfigurationService(APIManagerConfigurationService configurationService) {
 
-        log.debug("Setting APIM Configuration Service");
+        if (log.isDebugEnabled()) {
+            log.debug("Setting APIM Configuration Service");
+        }
         ServiceReferenceHolder.getInstance().setAPIMConfigurationService(configurationService);
     }
 
     protected void unsetAPIManagerConfigurationService(APIManagerConfigurationService configurationService) {
 
-        log.debug("Setting APIM Configuration Service");
+        if (log.isDebugEnabled()) {
+            log.debug("Unsetting APIM Configuration Service");
+        }
         ServiceReferenceHolder.getInstance().setAPIMConfigurationService(null);
     }
 
@@ -88,10 +117,18 @@ public class APIMRestAPICommonComponent {
             unbind = "removeRestAPIAuthenticationService"
     )
     protected void addRestAPIAuthenticationService(RestAPIAuthenticator authenticator) {
+        if (log.isDebugEnabled()) {
+            log.debug("Adding REST API authentication service: " + (authenticator != null ? 
+                    authenticator.getAuthenticationType() : "null"));
+        }
         ServiceReferenceHolder.getInstance().addAuthenticator(authenticator);
     }
 
     protected void removeRestAPIAuthenticationService(RestAPIAuthenticator authenticator) {
+        if (log.isDebugEnabled()) {
+            log.debug("Removing REST API authentication service: " + (authenticator != null ? 
+                    authenticator.getAuthenticationType() : "null"));
+        }
         ServiceReferenceHolder.getInstance().removeAuthenticator(authenticator);
     }
 }

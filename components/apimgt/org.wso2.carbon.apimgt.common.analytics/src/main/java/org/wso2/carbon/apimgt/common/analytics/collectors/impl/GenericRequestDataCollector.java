@@ -38,9 +38,15 @@ public class GenericRequestDataCollector implements RequestDataCollector {
         this.faultDataCollector = new FaultyRequestDataCollector(provider);
         this.unclassifiedDataCollector = new UnclassifiedRequestDataCollector(provider);
         this.provider = provider;
+        if (log.isDebugEnabled()) {
+            log.debug("GenericRequestDataCollector initialized with sub collectors");
+        }
     }
 
     public void collectData() throws AnalyticsException {
+        if (log.isDebugEnabled()) {
+            log.debug("Collecting analytics data for category: " + provider.getEventCategory());
+        }
         switch (provider.getEventCategory()) {
         case SUCCESS:
             successDataCollector.collectData();

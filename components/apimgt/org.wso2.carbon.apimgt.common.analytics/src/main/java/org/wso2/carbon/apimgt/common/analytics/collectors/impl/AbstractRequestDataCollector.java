@@ -17,18 +17,24 @@
 
 package org.wso2.carbon.apimgt.common.analytics.collectors.impl;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.apimgt.common.analytics.collectors.AnalyticsDataProvider;
 
 /**
  * Abstract request data collector.
  */
 public abstract class AbstractRequestDataCollector {
+    private static final Log log = LogFactory.getLog(AbstractRequestDataCollector.class);
 
     private AnalyticsDataProvider provider;
 
     public AbstractRequestDataCollector(AnalyticsDataProvider provider) {
-
         this.provider = provider;
+        if (log.isDebugEnabled()) {
+            log.debug("AbstractRequestDataCollector initialized with provider: " + 
+                    (provider != null ? provider.getClass().getSimpleName() : "null"));
+        }
     }
 
     public AnalyticsDataProvider getProvider() {

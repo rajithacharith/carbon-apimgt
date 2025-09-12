@@ -86,7 +86,11 @@ public class RestApiCommonUtil {
 
     public static APIProvider getLoggedInUserProvider() throws APIManagementException {
 
-        return APIManagerFactory.getInstance().getAPIProvider(getLoggedInUsername());
+        String username = getLoggedInUsername();
+        if (log.isDebugEnabled()) {
+            log.debug("Getting API provider for logged in user: " + username);
+        }
+        return APIManagerFactory.getInstance().getAPIProvider(username);
     }
 
     /**
@@ -114,6 +118,10 @@ public class RestApiCommonUtil {
                         + ". Skipping scope validation.");
             }
             return true;
+        }
+        
+        if (log.isDebugEnabled()) {
+            log.debug("Starting scope validation for path: " + resource + " with verb: " + verb);
         }
 
         for (Object template : uriTemplates.toArray()) {
@@ -148,8 +156,8 @@ public class RestApiCommonUtil {
                                 //we found scopes matches
                                 if (log.isDebugEnabled()) {
                                     log.debug("Scope validation successful for access token: " +
-                                            message.get(RestApiConstants.MASKED_TOKEN) + " with scope: " + scpObj.getKey() +
-                                            " for resource path: " + path + " and verb " + verb);
+                                            message.get(RestApiConstants.MASKED_TOKEN) + " with scope: " + 
+                                            scpObj.getKey() + " for resource path: " + path + " and verb " + verb);
                                 }
                                 return true;
                             }
@@ -164,6 +172,10 @@ public class RestApiCommonUtil {
                 }
             }
         }
+        
+        if (log.isDebugEnabled()) {
+            log.debug("Scope validation failed for path: " + resource + " with verb: " + verb);
+        }
         return false;
     }
 
@@ -177,13 +189,16 @@ public class RestApiCommonUtil {
         Set<URITemplate> uriTemplates = new HashSet<>();
         //get URI templates using the base path in the request
         if (basePath.contains(RestApiConstants.REST_API_PUBLISHER_CONTEXT_FULL_0)) {
-            uriTemplates = RestApiCommonUtil.getPublisherAppResourceMapping(RestApiConstants.REST_API_PUBLISHER_VERSION_0);
+            uriTemplates = RestApiCommonUtil.getPublisherAppResourceMapping(
+                    RestApiConstants.REST_API_PUBLISHER_VERSION_0);
         } else if (basePath.contains(RestApiConstants.REST_API_PUBLISHER_CONTEXT_FULL)) {
-            uriTemplates = RestApiCommonUtil.getPublisherAppResourceMapping(RestApiConstants.REST_API_PUBLISHER_VERSION);
+            uriTemplates = RestApiCommonUtil.getPublisherAppResourceMapping(
+                    RestApiConstants.REST_API_PUBLISHER_VERSION);
         } else if (basePath.contains(RestApiConstants.REST_API_STORE_CONTEXT_FULL_0)) {
             uriTemplates = RestApiCommonUtil.getStoreAppResourceMapping(RestApiConstants.REST_API_STORE_VERSION_0);
         } else if (basePath.contains(RestApiConstants.REST_API_DEVELOPER_PORTAL_CONTEXT_FULL)) {
-            uriTemplates = RestApiCommonUtil.getStoreAppResourceMapping(RestApiConstants.REST_API_DEVELOPER_PORTAL_VERSION);
+            uriTemplates = RestApiCommonUtil.getStoreAppResourceMapping(
+                    RestApiConstants.REST_API_DEVELOPER_PORTAL_VERSION);
         } else if (basePath.contains(RestApiConstants.REST_API_ADMIN_CONTEXT_FULL_0)) {
             uriTemplates = RestApiCommonUtil.getAdminAPIAppResourceMapping(RestApiConstants.REST_API_ADMIN_VERSION_0);
         } else if (basePath.contains(RestApiConstants.REST_API_ADMIN_CONTEXT_FULL)) {
@@ -419,7 +434,11 @@ public class RestApiCommonUtil {
      */
     public static APIConsumer getLoggedInUserConsumer() throws APIManagementException {
 
-        return APIManagerFactory.getInstance().getAPIConsumer(getLoggedInUsername());
+        String username = getLoggedInUsername();
+        if (log.isDebugEnabled()) {
+            log.debug("Getting API consumer for logged in user: " + username);
+        }
+        return APIManagerFactory.getInstance().getAPIConsumer(username);
     }
 
     public static String getLoggedInUsername() {
@@ -824,10 +843,23 @@ public class RestApiCommonUtil {
         String providerName = APIUtil.replaceEmailDomainBack(apiIdentifier.getProviderName());
         String providerTenantDomain = MultitenantUtils.getTenantDomain(providerName);
         String loggedInUserTenantDomain = getLoggedInUserTenantDomain();
+        
+        if (log.isDebugEnabled()) {
+            log.debug("Validating tenant access for user: " + username + " against API: " + 
+                    apiIdentifier.toString());
+        }
+        
         if (!providerTenantDomain.equals(loggedInUserTenantDomain)) {
             String errorMsg = "User " + username + " is not allowed to access " + apiIdentifier.toString()
                     + " as it belongs to a different tenant : " + providerTenantDomain;
+            log.warn("Tenant validation failed for user: " + username + " accessing API: " + 
+                    apiIdentifier.toString() + ". Provider tenant: " + providerTenantDomain + 
+                    ", User tenant: " + loggedInUserTenantDomain);
             throw new APIMgtAuthorizationFailedException(errorMsg);
+        }
+        
+        if (log.isDebugEnabled()) {
+            log.debug("Tenant validation successful for user: " + username);
         }
     }
 

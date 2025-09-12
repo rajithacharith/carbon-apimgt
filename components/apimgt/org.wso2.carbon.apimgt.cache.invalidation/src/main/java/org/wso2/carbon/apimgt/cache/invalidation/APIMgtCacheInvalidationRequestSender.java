@@ -20,6 +20,8 @@ package org.wso2.carbon.apimgt.cache.invalidation;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.apimgt.cache.invalidation.internal.DataHolder;
 import org.wso2.carbon.apimgt.eventing.EventPublisherEvent;
 import org.wso2.carbon.apimgt.eventing.EventPublisherType;
@@ -41,6 +43,7 @@ import javax.cache.event.CacheEntryUpdatedListener;
 public class APIMgtCacheInvalidationRequestSender implements CacheEntryRemovedListener, CacheEntryUpdatedListener,
         CacheEntryCreatedListener, CacheInvalidationRequestSender {
 
+    private static final Log log = LogFactory.getLog(APIMgtCacheInvalidationRequestSender.class);
     CacheInvalidationConfiguration cacheInvalidationConfiguration;
 
     public APIMgtCacheInvalidationRequestSender(CacheInvalidationConfiguration cacheInvalidationConfiguration) {
@@ -60,6 +63,10 @@ public class APIMgtCacheInvalidationRequestSender implements CacheEntryRemovedLi
                 }
             }
             if (!excludedCachePresent) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Sending cache invalidation event for cache: " + cacheInfo.getCacheName() + 
+                            " in tenant: " + cacheInfo.getTenantDomain());
+                }
                 Object[] objects = new Object[]{cacheInfo.getCacheManagerName(), cacheInfo.getCacheName(),
                         constructCacheKeyString(cacheInfo.getCacheKey()), cacheInfo.getTenantDomain(),
                         cacheInfo.getTenantId(),
@@ -69,6 +76,10 @@ public class APIMgtCacheInvalidationRequestSender implements CacheEntryRemovedLi
                                                 objects);
                 APIUtil.publishEvent(EventPublisherType.GLOBAL_CACHE_INVALIDATION, globalCacheInvalidationEvent,
                         globalCacheInvalidationEvent.toString());
+            } else {
+                if (log.isDebugEnabled()) {
+                    log.debug("Cache invalidation event skipped for excluded cache: " + cacheInfo.getCacheName());
+                }
             }
         }
     }

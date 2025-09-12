@@ -111,11 +111,20 @@ public class MethodTimeLogger {
         if (StringUtils.isEmpty((CharSequence) MDC.get(APIConstants.CORRELATION_ID))) {
             String correlationId = UUID.randomUUID().toString();
             MDC.put(APIConstants.CORRELATION_ID, correlationId);
+            if (log.isDebugEnabled()) {
+                log.debug("Generated new correlation ID: " + correlationId);
+            }
         }
 
-        log.info((System.currentTimeMillis() - start) + "|METHOD|" +
-                MethodSignature.class.cast(point.getSignature()).getDeclaringTypeName() + "|" +
-                MethodSignature.class.cast(point.getSignature()).getMethod().getName()+ "|" + argString);
+        long executionTime = System.currentTimeMillis() - start;
+        String className = MethodSignature.class.cast(point.getSignature()).getDeclaringTypeName();
+        String methodName = MethodSignature.class.cast(point.getSignature()).getMethod().getName();
+        
+        log.info(executionTime + "|METHOD|" + className + "|" + methodName + "|" + argString);
+        
+        if (log.isDebugEnabled()) {
+            log.debug("Method " + methodName + " in class " + className + " executed in " + executionTime + "ms");
+        }
         return result;
     }
 }

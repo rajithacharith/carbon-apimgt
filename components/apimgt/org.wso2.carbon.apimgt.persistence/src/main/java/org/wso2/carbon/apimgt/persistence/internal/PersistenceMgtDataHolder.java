@@ -16,10 +16,26 @@
 
 package org.wso2.carbon.apimgt.persistence.internal;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.registry.core.service.RegistryService;
 
 public class PersistenceMgtDataHolder {
-    public static void setRegistryService(RegistryService registryService) {
-
+    private static final Log log = LogFactory.getLog(PersistenceMgtDataHolder.class);
+    private static RegistryService registryService;
+    
+    public static void setRegistryService(RegistryService service) {
+        registryService = service;
+        if (log.isInfoEnabled()) {
+            log.info("Registry service " + (service != null ? "initialized" : "unset") + 
+                " in PersistenceMgtDataHolder");
+        }
+    }
+    
+    public static RegistryService getRegistryService() {
+        if (registryService == null && log.isWarnEnabled()) {
+            log.warn("Registry service is not initialized in PersistenceMgtDataHolder");
+        }
+        return registryService;
     }
 }

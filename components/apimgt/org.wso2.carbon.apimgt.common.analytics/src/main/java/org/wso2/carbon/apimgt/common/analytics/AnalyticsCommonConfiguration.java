@@ -17,18 +17,26 @@
 
 package org.wso2.carbon.apimgt.common.analytics;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import java.util.Map;
 
 /**
  * AnalyticsCommonConfiguration hold the common configurations.
  */
 public class AnalyticsCommonConfiguration {
+    private static final Log log = LogFactory.getLog(AnalyticsCommonConfiguration.class);
     private final Map<String, String> configurations;
     private String responseSchema;
     private String faultSchema;
 
     public AnalyticsCommonConfiguration(Map<String, String> configurations) {
         this.configurations = configurations;
+        if (log.isDebugEnabled()) {
+            log.debug("AnalyticsCommonConfiguration initialized with " + 
+                    (configurations != null ? configurations.size() : 0) + " configurations");
+        }
     }
 
     public Map<String, String> getConfigurations() {
@@ -41,6 +49,9 @@ public class AnalyticsCommonConfiguration {
 
     public void setResponseSchema(String responseSchema) {
         this.responseSchema = responseSchema;
+        if (log.isDebugEnabled()) {
+            log.debug("Response schema set: " + responseSchema);
+        }
     }
 
     public String getFaultSchema() {
@@ -49,5 +60,8 @@ public class AnalyticsCommonConfiguration {
 
     public void setFaultSchema(String faultSchema) {
         this.faultSchema = faultSchema;
+        if (log.isDebugEnabled()) {
+            log.debug("Fault schema set: " + faultSchema);
+        }
     }
 }

@@ -17,6 +17,8 @@
 
 package org.wso2.carbon.apimgt.common.analytics.collectors.impl.fault;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.apimgt.common.analytics.collectors.AnalyticsDataProvider;
 import org.wso2.carbon.apimgt.common.analytics.collectors.FaultDataCollector;
 import org.wso2.carbon.apimgt.common.analytics.collectors.impl.CommonRequestDataCollector;
@@ -32,6 +34,7 @@ import org.wso2.carbon.apimgt.common.analytics.publishers.dto.enums.FaultSubCate
  * Abstract faulty request data collector.
  */
 public abstract class AbstractFaultDataCollector extends CommonRequestDataCollector implements FaultDataCollector {
+    private static final Log log = LogFactory.getLog(AbstractFaultDataCollector.class);
 
     protected FaultCategory subType;
     private RequestDataPublisher processor;
@@ -44,17 +47,27 @@ public abstract class AbstractFaultDataCollector extends CommonRequestDataCollec
         this.provider = provider;
         this.subType = subType;
         this.processor = processor;
+        if (log.isDebugEnabled()) {
+            log.debug("AbstractFaultDataCollector initialized for fault category: " + subType);
+        }
     }
 
     protected final void processRequest(Event faultyEvent) throws InvalidCategoryException {
-
+        if (log.isDebugEnabled()) {
+            log.debug("Processing fault request for category: " + this.subType);
+        }
         Error error = provider.getError(this.subType);
         if (!isValidSubCategory(error.getErrorMessage())) {
+            log.warn("Invalid sub category for fault type: " + this.subType + ", error: " + 
+                    error.getErrorMessage());
             throw new InvalidCategoryException(this.subType, faultyEvent.getError().getErrorMessage().toString());
         }
         faultyEvent.setErrorType(this.subType.name());
         faultyEvent.setError(error);
         this.processor.publish(faultyEvent);
+        if (log.isDebugEnabled()) {
+            log.debug("Fault event published for category: " + this.subType);
+        }
     }
 
     private boolean isValidSubCategory(FaultSubCategory subCategory) {
