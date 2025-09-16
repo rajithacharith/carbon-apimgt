@@ -225,6 +225,126 @@ public class SessionDataPublisherImpl extends AbstractAuthenticationDataPublishe
             }
     }
 
+    @Override public void publishSessionTermination(HttpServletRequest request, AuthenticationContext context,
+            SessionContext sessionContext, Map<String, Object> params) {
+
+        OAuthConsumerAppDTO[] appDTOs = new OAuthConsumerAppDTO[0];
+        List<OAuthConsumerAppDTO> revokeAppList = new ArrayList<>();
+        AuthenticatedUser authenticatedUser = (AuthenticatedUser) params.get(user);
+        String username = authenticatedUser.getUserName();
+        String tenantDomain = authenticatedUser.getTenantDomain();
+        String userStoreDomain = authenticatedUser.getUserStoreDomain();
+        AuthenticatedUser federatedUser;
+        SystemApplicationDTO[] systemApplicationDTOS = new SystemApplicationDTO[0];
+
+        if (authenticatedUser.isFederatedUser()) {
+            try {
+                federatedUser = buildAuthenticatedUser(authenticatedUser);
+                authenticatedUser = federatedUser;
+            } catch (IdentityOAuth2Exception e) {
+                log.error("Error thrown while building authenticated user in logout flow for user " + authenticatedUser
+                        .getUserName(), e);
+            }
+        }
+        SystemApplicationDAO systemApplicationDAO = new SystemApplicationDAO();
+        try {
+            systemApplicationDTOS = systemApplicationDAO.getApplications(tenantDomain);
+            if (systemApplicationDTOS.length == 0) {
+                if (log.isDebugEnabled()) {
+                    log.debug("The tenant: " + tenantDomain + " doesn't have any system apps");
+                }
+            }
+        } catch (APIMgtDAOException e) {
+            log.error("Error thrown while retrieving system applications for the tenant domain " + tenantDomain, e);
+        }
+
+        try {
+            appDTOs = getAppsAuthorizedByUser(authenticatedUser);
+            if (appDTOs.length > 0) {
+                if (log.isDebugEnabled()) {
+                    log.debug(
+                            "The user: " + authenticatedUser.getUserName() + " has " + appDTOs.length + " OAuth apps");
+                }
+            }
+        } catch (IdentityOAuthAdminException e) {
+            log.error("Error while retrieving applications authorized for the user " + authenticatedUser.getUserName(),
+                    e);
+        }
+
+        for (OAuthConsumerAppDTO appDTO : appDTOs) {
+            for (SystemApplicationDTO systemApplicationDTO : systemApplicationDTOS) {
+                if (StringUtils.equalsIgnoreCase(appDTO.getOauthConsumerKey(), systemApplicationDTO.getConsumerKey())) {
+                    revokeAppList.add(appDTO);
+                }
+            }
+        }
+
+        for (OAuthConsumerAppDTO appDTO : revokeAppList) {
+                Set<AccessTokenDO> accessTokenDOs = null;
+                try {
+                    // Retrieve all ACTIVE or EXPIRED access tokens for particular client authorized by this user
+                    accessTokenDOs = OAuthTokenPersistenceFactory.getInstance().getAccessTokenDAO()
+                            .getAccessTokens(appDTO.getOauthConsumerKey(), authenticatedUser,
+                                    authenticatedUser.getUserStoreDomain(), true);
+                } catch (IdentityOAuth2Exception e) {
+                    log.error("Error while retrieving access tokens for the application " + appDTO.getApplicationName()
+                            + "and the for user " + authenticatedUser.getUserName(), e);
+                }
+                AuthenticatedUser authzUser;
+                if (accessTokenDOs != null) {
+                    for (AccessTokenDO accessTokenDO : accessTokenDOs) {
+                        //Clear cache with AccessTokenDO
+                        authzUser = accessTokenDO.getAuthzUser();
+                        OAuthUtil.clearOAuthCache(accessTokenDO.getConsumerKey(), authzUser,
+                                OAuth2Util.buildScopeString(accessTokenDO.getScope()),"NONE");
+                        OAuthUtil.clearOAuthCache(accessTokenDO.getConsumerKey(), authzUser,
+                                OAuth2Util.buildScopeString(accessTokenDO.getScope()));
+                        OAuthUtil.clearOAuthCache(accessTokenDO.getConsumerKey(), authzUser);
+                        OAuthUtil.clearOAuthCache(accessTokenDO.getAccessToken());
+                        Cache restApiTokenCache = CacheProvider.getRESTAPITokenCache();
+                        if (restApiTokenCache != null) {
+                            restApiTokenCache.remove(accessTokenDO.getAccessToken());
+                        }
+                        AccessTokenDO scopedToken = null;
+                        try {
+                            // Retrieve latest access token for particular client, user and scope combination if
+                            // its ACTIVE or EXPIRED.
+                            scopedToken = OAuthTokenPersistenceFactory.getInstance().getAccessTokenDAO()
+                                    .getLatestAccessToken(appDTO.getOauthConsumerKey(), authenticatedUser,
+                                            userStoreDomain, OAuth2Util.buildScopeString(accessTokenDO.getScope()),
+                                            true);
+                        } catch (IdentityOAuth2Exception e) {
+                            log.error("Error while retrieving scoped access tokens for the application " + appDTO
+                                    .getApplicationName() + "and the for user " + authenticatedUser.getUserName(), e);
+                        }
+                        if (scopedToken != null) {
+                            //Revoking token from database
+                            try {
+                                OAuthTokenPersistenceFactory.getInstance().getAccessTokenDAO()
+                                        .revokeAccessTokens(new String[] { scopedToken.getAccessToken() });
+
+                            } catch (IdentityOAuth2Exception e) {
+                                log.error("Error while revoking access tokens related for the application " + appDTO
+                                                .getApplicationName() + "and the for user " + authenticatedUser.getUserName(),
+                                        e);
+                            }
+                            //Revoking the oauth consent from database.
+                            try {
+                                OAuthTokenPersistenceFactory.getInstance().getTokenManagementDAO()
+                                        .revokeOAuthConsentByApplicationAndUser(
+                                                authzUser.getAuthenticatedSubjectIdentifier(), tenantDomain, username);
+                            } catch (IdentityOAuth2Exception e) {
+                                log.error("Error while revoking access tokens related for the application " + appDTO
+                                                .getApplicationName() + "and the for user " + authenticatedUser.getUserName(),
+                                        e);
+                            }
+                        }
+                    }
+                }
+            }
+    }
+
+
     /**
      * Method to retrieve applications authorized for user
      * @param authenticatedUser authenticated user info
